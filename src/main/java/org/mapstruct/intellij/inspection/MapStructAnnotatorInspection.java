@@ -3,8 +3,10 @@ package org.mapstruct.intellij.inspection;
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.openapi.project.Project;
+import com.intellij.patterns.PsiJavaPatterns;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NotNull;
 import org.mapstruct.intellij.MapStructBundle;
@@ -157,6 +159,54 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
             this.holder = holder;
         }
 
+
+        @Override
+        public void visitReturnStatement(PsiReturnStatement returnStatement) {
+
+
+            PsiExpression sourceReturnValue = returnStatement.getReturnValue();
+            if (sourceReturnValue == null) {
+                return;
+            }
+
+            PsiType sourceType = sourceReturnValue.getType();
+            if (!(sourceType instanceof PsiClassType)) {
+                return;
+            }
+
+            Project project = returnStatement.getProject();
+
+            JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+
+            PsiClass iterableClass = javaPsiFacade.findClass("java.lang.Iterable", GlobalSearchScope.allScope(project));
+
+            if (PsiJavaPatterns.psiReturnStatement().inside(PsiLambdaExpression.class).accepts(returnStatement)) {
+                // lambda 表达式中不进行处理
+                return;
+
+            } else if (PsiJavaPatterns.psiReturnStatement().inside(PsiMethod.class).accepts(returnStatement)) {
+
+                PsiMethod psiMethod = PsiTreeUtil.getParentOfType(returnStatement, PsiMethod.class);
+                assert psiMethod != null;
+
+                PsiType targetType = psiMethod.getReturnType();
+
+                if (!(targetType instanceof PsiClassType)) {
+                    return;
+                }
+
+                if (needFix(iterableClass, (PsiClassType) sourceType, (PsiClassType) targetType)) {
+                    holder.registerProblem(
+                            returnStatement,
+                            MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
+                            new MapStructMapperGenerateAndUseConvertMethodQuickFix((PsiElement) sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
+                    );
+                }
+            }
+
+            super.visitReturnStatement(returnStatement);
+        }
+
         @Override
         public void visitDeclarationStatement(PsiDeclarationStatement declarationStatement) {
             super.visitDeclarationStatement(declarationStatement);
@@ -205,7 +255,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                         holder.registerProblem(
                                 declaredElement,
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
-                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(initializer,sourceClassType, targetClassType)
+                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(initializer, sourceClassType, targetClassType)
                         );
                     }
 
