@@ -11,6 +11,8 @@ import org.jetbrains.annotations.NotNull;
 import org.mapstruct.intellij.MapStructBundle;
 import org.mapstruct.intellij.domain.MapStructMapperGenerator;
 
+import java.util.Objects;
+
 
 public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements LocalQuickFix {
 
@@ -51,7 +53,7 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
             PsiElementFactory elementFactory = JavaPsiFacade.getInstance(project).getElementFactory();
 
             PsiExpression expressionFromText = elementFactory.createExpressionFromText(
-                    "${mapperMethod.containingClass!!.qualifiedName}.INSTANCE.${mapperMethod.name}(${psiElement.text})",
+                    Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")",
                     psiElement);
 
             if (expressionFromText instanceof PsiMethodCallExpression) {
