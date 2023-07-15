@@ -103,7 +103,7 @@ public class MapStructMapperGenerator {
          * 如果当前类中，不存在了此方法，创建新的方法
          *
          ******************************************************** */
-        String sourceParamName = sourceClassType.getClassName().substring(0, 0).toLowerCase() + sourceClassType.getClassName().substring(1);
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
 
         String methodContent = targetClassType.getCanonicalText() + " " + methodName + "(" + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
         PsiMethod resultMethod = (PsiMethod) mapperClass.add(elementFactory.createMethodFromText(methodContent, mapperClass));
@@ -133,7 +133,7 @@ public class MapStructMapperGenerator {
          * 如果当前类中，不存在了此方法，创建新的方法
          *
          ******************************************************** */
-        String sourceParamName = sourceClassType.getClassName().substring(0, 0).toLowerCase() + sourceClassType.getClassName().substring(1) + "List";
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1) + "List";
 
         String methodContent = "java.util.List<" + targetClassType.getCanonicalText() + "> " + methodName + "(java.util.List<" + sourceClassType.getCanonicalText() + "> " + sourceParamName + ");";
 
