@@ -64,6 +64,15 @@
               shortName="UnmappedTargetProperties"
               implementationClass="org.mapstruct.intellij.inspection.UnmappedTargetPropertiesInspection"/>
 
+      <localInspection
+              language="JAVA"
+              enabledByDefault="true"
+              level="ERROR"
+              bundle="org.mapstruct.intellij.messages.MapStructBundle"
+              key="inspection.generate_mapstruct_class_and_use_it.properties"
+              shortName="GenerateAndUseMapStructConverter"
+              implementationClass="org.mapstruct.intellij.inspection.MapStructAnnotatorInspection"/>
+
     <localInspection
             language="JAVA"
             enabledByDefault="true"
