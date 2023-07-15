@@ -30,11 +30,6 @@ public class MapStructMapperGenerator {
 
     public PsiMethod generateMapperMethod(PsiClassType sourceType, PsiClassType targetType) {
 
-        PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
-
-        // create INSTANCE field
-        PsiField instanceFieldIfNotExists = createInstanceFieldIfNotExists(mapperClass);
-
         // 如果目标类型是一个集合类型，找到目标类型 Iterable 的泛型类，使用泛型类，生成一个 Mapper
         PsiClass targetTypeClass = targetType.resolveGenerics().getElement();
         if (targetTypeClass == null) {
@@ -62,11 +57,26 @@ public class MapStructMapperGenerator {
             PsiType typeParameter = PsiUtil.extractIterableTypeParameter(sourceType, false);
 
             if (typeParameter instanceof PsiClassType) {
+
+
+                PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
+
+                // create INSTANCE field
+                PsiField instanceFieldIfNotExists = createInstanceFieldIfNotExists(mapperClass);
+
+
                 return createListMethod(mapperClass, (PsiClassType) typeParameter, targetType);
             }
 
             return null;
         }
+
+
+        PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
+
+        // create INSTANCE field
+        PsiField instanceFieldIfNotExists = createInstanceFieldIfNotExists(mapperClass);
+
         // 如果来源类型不是集合类型,直接生成对象 convert 方法
         return generateConvertMethod(sourceType, targetType, mapperClass);
 
