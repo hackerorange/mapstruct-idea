@@ -65,6 +65,7 @@
               implementationClass="org.mapstruct.intellij.inspection.UnmappedTargetPropertiesInspection"/>
 
       <localInspection
+              groupName="MapStruct"
               language="JAVA"
               enabledByDefault="true"
               level="ERROR"
