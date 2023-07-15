@@ -91,7 +91,7 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
     private boolean isRootSourceDirectory(PsiDirectory containingDirectory) {
         if (containingDirectory.getName().equals("java")) {
             VirtualFile virtualFile = containingDirectory.getVirtualFile();
-            return virtualFile.getPath().endsWith("src/main/java");
+            return virtualFile.getPath().endsWith("src/main/java") || virtualFile.getPath().endsWith("src/test/java");
         }
         return false;
     }
