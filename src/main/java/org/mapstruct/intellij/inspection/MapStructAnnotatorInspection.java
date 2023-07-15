@@ -203,9 +203,9 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
                     if (needFix(iterableClass, sourceClassType, targetClassType)) {
                         holder.registerProblem(
-                                initializer,
+                                declaredElement,
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
-                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceClassType, targetClassType)
+                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(initializer,sourceClassType, targetClassType)
                         );
                     }
 

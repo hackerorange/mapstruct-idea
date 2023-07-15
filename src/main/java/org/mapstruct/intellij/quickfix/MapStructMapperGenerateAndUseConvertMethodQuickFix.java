@@ -19,11 +19,14 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
     private static final String CONVERTER_PACKAGE = "com.glodon.cloudt.converters";
 
     @SafeFieldForPreview
+    private final PsiElement psiElement;
+    @SafeFieldForPreview
     private final PsiClassType sourceType;
     @SafeFieldForPreview
     private final PsiClassType targetType;
 
-    public MapStructMapperGenerateAndUseConvertMethodQuickFix(PsiClassType sourceType, PsiClassType targetType) {
+    public MapStructMapperGenerateAndUseConvertMethodQuickFix(PsiElement psiElement, PsiClassType sourceType, PsiClassType targetType) {
+        this.psiElement = psiElement;
         this.sourceType = sourceType;
         this.targetType = targetType;
     }
@@ -35,7 +38,6 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
 
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        PsiElement psiElement = descriptor.getPsiElement();
 
         PsiFile containingFile = psiElement.getContainingFile();
 
