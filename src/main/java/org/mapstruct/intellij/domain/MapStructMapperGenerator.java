@@ -58,31 +58,35 @@ public class MapStructMapperGenerator {
 
             if (typeParameter instanceof PsiClassType) {
 
+                sourceType = (PsiClassType) typeParameter;
 
                 PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
 
                 // create INSTANCE field
-                PsiField instanceFieldIfNotExists = createInstanceFieldIfNotExists(mapperClass);
+                createInstanceFieldIfNotExists(mapperClass);
 
+                // 创建对象映射方法
+                generateConvertMethod(mapperClass, sourceType, targetType);
 
-                return createListMethod(mapperClass, (PsiClassType) typeParameter, targetType);
+                // 创建 list 映射方法
+                return createListMethod(mapperClass, sourceType, targetType);
             }
 
             return null;
+        } else {
+            PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
+
+            // create INSTANCE field
+            createInstanceFieldIfNotExists(mapperClass);
+
+            // 如果来源类型不是集合类型,直接生成对象 convert 方法
+            return generateConvertMethod(mapperClass, sourceType, targetType);
         }
 
 
-        PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
-
-        // create INSTANCE field
-        PsiField instanceFieldIfNotExists = createInstanceFieldIfNotExists(mapperClass);
-
-        // 如果来源类型不是集合类型,直接生成对象 convert 方法
-        return generateConvertMethod(sourceType, targetType, mapperClass);
-
     }
 
-    private PsiMethod generateConvertMethod(PsiClassType sourceClassType, PsiClassType targetClassType, PsiClass mapperClass) {
+    private PsiMethod generateConvertMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
         String methodName = "convertFrom" + sourceClassType.getClassName();
 
