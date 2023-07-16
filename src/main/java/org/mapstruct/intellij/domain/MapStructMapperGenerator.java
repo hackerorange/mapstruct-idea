@@ -69,7 +69,7 @@ public class MapStructMapperGenerator {
                 generateConvertMethod(mapperClass, sourceType, targetType);
 
                 // 创建 list 映射方法
-                return createListMethod(mapperClass, sourceType, targetType);
+                return generateConvertListMethod(mapperClass, sourceType, targetType);
             }
 
             return null;
@@ -116,7 +116,7 @@ public class MapStructMapperGenerator {
         return resultMethod;
     }
 
-    private PsiMethod createListMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
+    private PsiMethod generateConvertListMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
         String methodName = "convertFrom" + sourceClassType.getClassName() + "List";
 
