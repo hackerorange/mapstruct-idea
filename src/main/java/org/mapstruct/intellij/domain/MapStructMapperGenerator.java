@@ -60,7 +60,7 @@ public class MapStructMapperGenerator {
 
                 sourceType = (PsiClassType) typeParameter;
 
-                PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
+                PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Assembler");
 
                 // create INSTANCE field
                 createInstanceFieldIfNotExists(mapperClass);
@@ -74,7 +74,7 @@ public class MapStructMapperGenerator {
 
             return null;
         } else {
-            PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Mapper");
+            PsiClass mapperClass = createClassIfNotExists(converterDirectory, targetType.getClassName() + "Assembler");
 
             // create INSTANCE field
             createInstanceFieldIfNotExists(mapperClass);
