@@ -35,6 +35,28 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
         this.targetType = targetType;
     }
 
+    /**
+     * modify current base directory <br/>
+     * 修改当前基目录
+     *
+     * @param baseDirectory            base directory
+     * @param currentJavaFileDirectory current java file directory
+     */
+    private static void modifyCurrentBaseDirectory(AtomicReference<PsiDirectory> baseDirectory, PsiDirectory currentJavaFileDirectory) {
+        PsiDirectory previousBaseDirectory = baseDirectory.get();
+        if (previousBaseDirectory == null) {
+            baseDirectory.set(currentJavaFileDirectory);
+            return;
+        }
+
+        String currentPath = currentJavaFileDirectory.getVirtualFile().getPath();
+        String previousPath = previousBaseDirectory.getVirtualFile().getPath();
+
+        if (previousPath.length() > currentPath.length()) {
+            baseDirectory.set(currentJavaFileDirectory);
+        }
+    }
+
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
         return MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.quickfix");
@@ -90,12 +112,6 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
 
         // 遍历文件夹下的所有文件，找到java文件下的所有 request mapping
         VfsUtilCore.iterateChildrenRecursively(virtualFile, VirtualFileFilter.ALL, it -> {
-            PsiDirectory psiDirectory = baseDirectory.get();
-
-            // 基准文件夹已经找到，返回 false 不继续查找
-            if (psiDirectory != null) {
-                return false;
-            }
             // 不是有效的文件，继续后面的文件
             if (!it.isValid()) {
                 return true;
@@ -104,13 +120,11 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
             if (it.isDirectory()) {
                 return true;
             }
-            // 不是 java 文件，继续后面的文件
+            // 是 java 文件的话，更新 base directory
             if (it.getName().endsWith(".java")) {
                 PsiFile psiFile = PsiUtilBase.getPsiFile(psiElement.getProject(), it);
                 if (psiFile instanceof PsiJavaFile) {
-                    PsiDirectory directory = psiElement.getContainingFile().getContainingDirectory();
-                    baseDirectory.set(directory);
-                    return false;
+                    modifyCurrentBaseDirectory(baseDirectory, psiElement.getContainingFile().getContainingDirectory());
                 }
             }
             return true;
