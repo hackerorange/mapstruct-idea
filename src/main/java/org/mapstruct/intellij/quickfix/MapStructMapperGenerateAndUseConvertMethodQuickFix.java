@@ -3,7 +3,6 @@ package org.mapstruct.intellij.quickfix;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -89,37 +88,33 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
 
         AtomicReference<PsiDirectory> baseDirectory = new AtomicReference<>();
 
-        ApplicationManager
-                .getApplication()
-                .runReadAction(() -> {
-                    // 遍历文件夹下的所有文件，找到java文件下的所有 request mapping
-                    VfsUtilCore.iterateChildrenRecursively(virtualFile, VirtualFileFilter.ALL, it -> {
-                        PsiDirectory psiDirectory = baseDirectory.get();
+        // 遍历文件夹下的所有文件，找到java文件下的所有 request mapping
+        VfsUtilCore.iterateChildrenRecursively(virtualFile, VirtualFileFilter.ALL, it -> {
+            PsiDirectory psiDirectory = baseDirectory.get();
 
-                        // 基准文件夹已经找到，返回 false 不继续查找
-                        if (psiDirectory != null) {
-                            return false;
-                        }
-                        // 不是有效的文件，继续后面的文件
-                        if (!it.isValid()) {
-                            return true;
-                        }
-                        // 是文件夹，继续后面的文件
-                        if (it.isDirectory()) {
-                            return true;
-                        }
-                        // 不是 java 文件，继续后面的文件
-                        if (it.getName().endsWith(".java")) {
-                            PsiFile psiFile = PsiUtilBase.getPsiFile(psiElement.getProject(), it);
-                            if (psiFile instanceof PsiJavaFile) {
-                                PsiDirectory directory = psiElement.getContainingFile().getContainingDirectory();
-                                baseDirectory.set(directory);
-                                return false;
-                            }
-                        }
-                        return true;
-                    });
-                });
+            // 基准文件夹已经找到，返回 false 不继续查找
+            if (psiDirectory != null) {
+                return false;
+            }
+            // 不是有效的文件，继续后面的文件
+            if (!it.isValid()) {
+                return true;
+            }
+            // 是文件夹，继续后面的文件
+            if (it.isDirectory()) {
+                return true;
+            }
+            // 不是 java 文件，继续后面的文件
+            if (it.getName().endsWith(".java")) {
+                PsiFile psiFile = PsiUtilBase.getPsiFile(psiElement.getProject(), it);
+                if (psiFile instanceof PsiJavaFile) {
+                    PsiDirectory directory = psiElement.getContainingFile().getContainingDirectory();
+                    baseDirectory.set(directory);
+                    return false;
+                }
+            }
+            return true;
+        });
 
         PsiDirectory sourceBaseDirectory = baseDirectory.get();
 
