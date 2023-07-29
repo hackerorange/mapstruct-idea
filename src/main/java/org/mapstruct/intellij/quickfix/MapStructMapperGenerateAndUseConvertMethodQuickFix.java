@@ -3,7 +3,6 @@ package org.mapstruct.intellij.quickfix;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -81,9 +80,9 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
         if (mapperMethod != null) {
             PsiElementFactory elementFactory = JavaPsiFacade.getInstance(project).getElementFactory();
 
-            PsiExpression expressionFromText = elementFactory.createExpressionFromText(
-                    Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")",
-                    psiElement);
+            String expression = Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")";
+
+            PsiExpression expressionFromText = elementFactory.createExpressionFromText(expression, psiElement);
 
             if (expressionFromText instanceof PsiMethodCallExpression) {
                 psiElement.replace(expressionFromText);
