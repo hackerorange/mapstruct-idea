@@ -124,7 +124,7 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
             if (it.getName().endsWith(".java")) {
                 PsiFile psiFile = PsiUtilBase.getPsiFile(psiElement.getProject(), it);
                 if (psiFile instanceof PsiJavaFile) {
-                    modifyCurrentBaseDirectory(baseDirectory, psiElement.getContainingFile().getContainingDirectory());
+                    modifyCurrentBaseDirectory(baseDirectory, psiFile.getContainingFile().getContainingDirectory());
                 }
             }
             return true;
