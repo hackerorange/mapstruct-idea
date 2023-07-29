@@ -79,9 +79,9 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
 
         if (mapperMethod != null) {
             PsiElementFactory elementFactory = JavaPsiFacade.getInstance(project).getElementFactory();
-
+            // 表达式
             String expression = Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")";
-
+            // 生成表达式
             PsiExpression expressionFromText = elementFactory.createExpressionFromText(expression, psiElement);
 
             if (expressionFromText instanceof PsiMethodCallExpression) {
