@@ -3,6 +3,7 @@ package org.mapstruct.intellij.quickfix;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -73,22 +74,27 @@ public class MapStructMapperGenerateAndUseConvertMethodQuickFix implements Local
             return;
         }
 
-        MapStructMapperGenerator mapStructMapperGenerator = new MapStructMapperGenerator(project, converterDirectory);
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                MapStructMapperGenerator mapStructMapperGenerator = new MapStructMapperGenerator(project, converterDirectory);
 
-        PsiMethod mapperMethod = mapStructMapperGenerator.generateMapperMethod(sourceType, targetType);
+                PsiMethod mapperMethod = mapStructMapperGenerator.generateMapperMethod(sourceType, targetType);
 
-        if (mapperMethod != null) {
-            PsiElementFactory elementFactory = JavaPsiFacade.getInstance(project).getElementFactory();
+                if (mapperMethod != null) {
+                    PsiElementFactory elementFactory = JavaPsiFacade.getInstance(project).getElementFactory();
 
-            PsiExpression expressionFromText = elementFactory.createExpressionFromText(
-                    Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")",
-                    psiElement);
+                    PsiExpression expressionFromText = elementFactory.createExpressionFromText(
+                            Objects.requireNonNull(mapperMethod.getContainingClass()).getQualifiedName() + ".INSTANCE." + mapperMethod.getName() + "(" + psiElement.getText() + ")",
+                            psiElement);
 
-            if (expressionFromText instanceof PsiMethodCallExpression) {
-                psiElement.replace(expressionFromText);
-                JavaCodeStyleManager.getInstance(project).shortenClassReferences(containingFile);
+                    if (expressionFromText instanceof PsiMethodCallExpression) {
+                        psiElement.replace(expressionFromText);
+                        JavaCodeStyleManager.getInstance(project).shortenClassReferences(containingFile);
+                    }
+                }
             }
-        }
+        });
     }
 
     private PsiDirectory getConverterDirectory(PsiElement psiElement) {
