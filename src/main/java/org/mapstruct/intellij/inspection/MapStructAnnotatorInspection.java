@@ -20,7 +20,12 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
     @Override
     public @NotNull PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
-        return new MyJavaElementVisitor(holder);
+
+        JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(holder.getProject());
+
+        PsiClass iterableClass = javaPsiFacade.findClass("java.lang.Iterable", GlobalSearchScope.allScope(holder.getProject()));
+
+        return new MyJavaElementVisitor(holder, iterableClass);
     }
 
     static class MyJavaElementVisitor extends JavaElementVisitor {
@@ -153,10 +158,12 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
         }
 
         private final @NotNull ProblemsHolder holder;
+        private final PsiClass iterableClass;
 
 
-        public MyJavaElementVisitor(@NotNull ProblemsHolder holder) {
+        public MyJavaElementVisitor(@NotNull ProblemsHolder holder, PsiClass iterableClass) {
             this.holder = holder;
+            this.iterableClass = iterableClass;
         }
 
 
@@ -176,9 +183,6 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
             Project project = returnStatement.getProject();
 
-            JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
-
-            PsiClass iterableClass = javaPsiFacade.findClass("java.lang.Iterable", GlobalSearchScope.allScope(project));
 
             if (PsiJavaPatterns.psiReturnStatement().inside(PsiLambdaExpression.class).accepts(returnStatement)) {
                 // lambda 表达式中不进行处理
@@ -195,7 +199,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     return;
                 }
 
-                if (needFix(iterableClass, (PsiClassType) sourceType, (PsiClassType) targetType)) {
+                if (needFix((PsiClassType) sourceType, (PsiClassType) targetType)) {
                     holder.registerProblem(
                             returnStatement,
                             MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
@@ -251,7 +255,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     PsiClassType sourceClassType = (PsiClassType) sourceType;
                     PsiClassType targetClassType = (PsiClassType) targetType;
 
-                    if (needFix(iterableClass, sourceClassType, targetClassType)) {
+                    if (needFix(sourceClassType, targetClassType)) {
                         holder.registerProblem(
                                 declaredElement,
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
@@ -267,7 +271,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
         }
 
-        private boolean needFix(PsiClass iterableClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
+        private boolean needFix(PsiClassType sourceClassType, PsiClassType targetClassType) {
             if (sourceClassType == null || targetClassType == null) {
                 return false;
             }
@@ -301,7 +305,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                 if (!(innerTargetType instanceof PsiClassType)) {
                     return false;
                 }
-                return needFix(iterableClass, (PsiClassType) innerSourceType, (PsiClassType) innerTargetType);
+                return needFix((PsiClassType) innerSourceType, (PsiClassType) innerTargetType);
             }
 
             if (sourceClass.isInheritor(targetClass, true)) {
