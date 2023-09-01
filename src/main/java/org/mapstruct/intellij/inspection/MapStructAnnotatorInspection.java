@@ -261,26 +261,26 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
             private boolean needFix(PsiClassType sourceClassType, PsiClassType targetClassType) {
                 if (sourceClassType == null || targetClassType == null) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 PsiClass sourceClass = sourceClassType.resolveGenerics().getElement();
                 if (sourceClass == null) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 PsiClass targetClass = targetClassType.resolveGenerics().getElement();
                 if (targetClass == null) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
 
-                boolean isSourceTypeIterable = sourceClass.isInheritor(iterableClass, true);
-                boolean isTargetTypeIterable = targetClass.isInheritor(iterableClass, true);
+                boolean isSourceTypeIterable = iterableClass != null && sourceClass.isInheritor(iterableClass, true);
+                boolean isTargetTypeIterable = iterableClass != null && targetClass.isInheritor(iterableClass, true);
 
                 // 如果 source 和 target 中，一个是集合，另外一个不是集合的话，则无法转化
                 if (isSourceTypeIterable != isTargetTypeIterable) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 // 如果 source 和 target都是集合的话
@@ -288,41 +288,41 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     PsiType innerSourceType = PsiUtil.extractIterableTypeParameter(sourceClassType, false);
                     PsiType innerTargetType = PsiUtil.extractIterableTypeParameter(targetClassType, false);
                     if (!(innerSourceType instanceof PsiClassType)) {
-                        return false;
+                        return Boolean.FALSE;
                     }
                     if (!(innerTargetType instanceof PsiClassType)) {
-                        return false;
+                        return Boolean.FALSE;
                     }
                     return needFix((PsiClassType) innerSourceType, (PsiClassType) innerTargetType);
                 }
 
                 if (sourceClass.isInheritor(targetClass, true)) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 if (sourceClassType.getCanonicalText().equals(targetClassType.getCanonicalText())) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 PsiClass resolvedTargetType = targetClassType.resolve();
 
                 if (resolvedTargetType == null) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 if (IGNORE_CLASS_LIST.contains(resolvedTargetType.getQualifiedName())) {
-                    return false;
+                    return Boolean.FALSE;
                 }
                 PsiClass resolvedSourceType = sourceClassType.resolve();
                 if (resolvedSourceType == null) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
                 if (Objects.equals(resolvedTargetType.getQualifiedName(), resolvedSourceType.getQualifiedName())) {
-                    return false;
+                    return Boolean.FALSE;
                 }
 
-                return true;
+                return Boolean.TRUE;
             }
 
         };
