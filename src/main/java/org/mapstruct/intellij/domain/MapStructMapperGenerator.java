@@ -90,6 +90,7 @@ public class MapStructMapperGenerator {
     private PsiMethod generateConvertMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
         String methodName = "convertFrom" + sourceClassType.getClassName();
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
 
         /* ********************************************************
          *
@@ -99,6 +100,9 @@ public class MapStructMapperGenerator {
         // TODO:后续添加多个参数校验
         for (PsiMethod method : mapperClass.getMethods()) {
             if (method.getName().equals(methodName)) {
+                if(method.getDocComment()==null){
+                    addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                }
                 return method;
             }
         }
@@ -108,11 +112,11 @@ public class MapStructMapperGenerator {
          * 如果当前类中，不存在了此方法，创建新的方法
          *
          ******************************************************** */
-        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
 
         String methodContent = targetClassType.getCanonicalText() + " " + methodName + "(" + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
         PsiMethod resultMethod = (PsiMethod) mapperClass.add(elementFactory.createMethodFromText(methodContent, mapperClass));
 
+        addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
         return resultMethod;
     }
@@ -175,6 +179,36 @@ public class MapStructMapperGenerator {
                 + "/* \n"
                 + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
                 + " * @param " + sourceParamName + " [ required ] source objects\n"
+                + " * @return converted objects\n"
+                + " * \n"
+                + " */";
+        PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
+
+        if (method.getDocComment() != null) {
+            method.getDocComment().replace(docCommentFromText);
+        } else {
+            method.addAfter(docCommentFromText, null);
+        }
+
+    }
+
+
+
+    /**
+     * 为列表转换方法添加或替换文档注释
+     *
+     * @param sourceClassType source class type
+     * @param targetClassType target class type
+     * @param method          method
+     * @param sourceParamName source param name
+     * @apiNote add or replace doc comment for list convert method
+     */
+    private void addOrReplaceDocCommentForSingleObjectConvertMethod(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
+        //noinspection ConcatenationWithEmptyString
+        String docComment = ""
+                + "/* \n"
+                + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
+                + " * @param " + sourceParamName + " [ required ] source object\n"
                 + " * @return converted objects\n"
                 + " * \n"
                 + " */";
