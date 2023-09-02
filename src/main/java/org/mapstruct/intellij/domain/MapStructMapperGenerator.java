@@ -132,7 +132,7 @@ public class MapStructMapperGenerator {
             if (method.getName().equals(methodName)) {
 
                 if (method.getDocComment() == null) {
-                    addOrReplaceDocComment(sourceClassType, targetClassType, method, sourceParamName);
+                    addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
                     JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
                 }
 
@@ -155,21 +155,21 @@ public class MapStructMapperGenerator {
 //        psiMethod.getModifierList().addAnnotation("org.springframework.lang.NonNull");
 
         PsiMethod generatedNewMethod = (PsiMethod) mapperClass.add(psiMethod);
-        addOrReplaceDocComment(sourceClassType, targetClassType, generatedNewMethod, sourceParamName);
+        addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, generatedNewMethod, sourceParamName);
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(generatedNewMethod.getContainingFile());
         return generatedNewMethod;
     }
 
     /**
-     * 添加或替换文档注释
+     * 为列表转换方法添加或替换文档注释
      *
      * @param sourceClassType source class type
      * @param targetClassType target class type
      * @param method          method
      * @param sourceParamName source param name
-     * @apiNote add or replace doc comment
+     * @apiNote add or replace doc comment for list convert method
      */
-    private void addOrReplaceDocComment(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
+    private void addOrReplaceDocCommentForListConvertMethod(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
                 + "/* \n"
