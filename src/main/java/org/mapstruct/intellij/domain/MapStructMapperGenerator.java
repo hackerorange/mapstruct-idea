@@ -160,6 +160,15 @@ public class MapStructMapperGenerator {
         return generatedNewMethod;
     }
 
+    /**
+     * 添加或替换文档注释
+     *
+     * @param sourceClassType source class type
+     * @param targetClassType target class type
+     * @param method          method
+     * @param sourceParamName source param name
+     * @apiNote add or replace doc comment
+     */
     private void addOrReplaceDocComment(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
