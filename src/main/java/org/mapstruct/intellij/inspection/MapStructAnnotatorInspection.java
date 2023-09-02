@@ -41,9 +41,6 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     return;
                 }
 
-                Project project = returnStatement.getProject();
-
-
                 if (PsiJavaPatterns.psiReturnStatement().inside(PsiLambdaExpression.class).accepts(returnStatement)) {
                     // lambda 表达式中不进行处理
                     return;
@@ -63,7 +60,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                         holder.registerProblem(
                                 returnStatement,
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
-                                new MapStructMapperGenerateAndUseConvertMethodQuickFix((PsiElement) sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
+                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
                         );
                     }
                 }
@@ -76,12 +73,6 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                 super.visitDeclarationStatement(declarationStatement);
 
                 PsiElement[] declaredElements = declarationStatement.getDeclaredElements();
-
-                Project project = declarationStatement.getProject();
-
-                JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
-                PsiClass iterableClass = javaPsiFacade.findClass("java.lang.Iterable", GlobalSearchScope.allScope(project));
-
 
                 for (PsiElement declaredElement : declaredElements) {
                     if (declaredElement instanceof PsiLocalVariable) {
