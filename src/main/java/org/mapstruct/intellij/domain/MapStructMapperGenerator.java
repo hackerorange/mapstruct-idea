@@ -100,8 +100,8 @@ public class MapStructMapperGenerator {
         // TODO:后续添加多个参数校验
         for (PsiMethod method : mapperClass.getMethods()) {
             if (method.getName().equals(methodName)) {
-                if(method.getDocComment()==null){
-                    addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                if (method.getDocComment() == null) {
+                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
                 }
                 return method;
             }
@@ -116,7 +116,7 @@ public class MapStructMapperGenerator {
         String methodContent = targetClassType.getCanonicalText() + " " + methodName + "(" + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
         PsiMethod resultMethod = (PsiMethod) mapperClass.add(elementFactory.createMethodFromText(methodContent, mapperClass));
 
-        addOrReplaceDocCommentForListConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
+        addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
         return resultMethod;
     }
@@ -176,7 +176,7 @@ public class MapStructMapperGenerator {
     private void addOrReplaceDocCommentForListConvertMethod(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
-                + "/* \n"
+                + "/** \n"
                 + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
                 + " * @param " + sourceParamName + " [ required ] source objects\n"
                 + " * @return converted objects\n"
@@ -193,7 +193,6 @@ public class MapStructMapperGenerator {
     }
 
 
-
     /**
      * 为列表转换方法添加或替换文档注释
      *
@@ -206,7 +205,7 @@ public class MapStructMapperGenerator {
     private void addOrReplaceDocCommentForSingleObjectConvertMethod(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
-                + "/* \n"
+                + "/** \n"
                 + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
                 + " * @param " + sourceParamName + " [ required ] source object\n"
                 + " * @return converted objects\n"
