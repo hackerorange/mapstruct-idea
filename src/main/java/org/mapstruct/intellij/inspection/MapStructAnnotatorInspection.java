@@ -29,7 +29,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
             @Override
             public void visitReturnStatement(PsiReturnStatement returnStatement) {
-
+                super.visitReturnStatement(returnStatement);
 
                 PsiExpression sourceReturnValue = returnStatement.getReturnValue();
                 if (sourceReturnValue == null) {
@@ -65,7 +65,6 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     }
                 }
 
-                super.visitReturnStatement(returnStatement);
             }
 
             @Override
