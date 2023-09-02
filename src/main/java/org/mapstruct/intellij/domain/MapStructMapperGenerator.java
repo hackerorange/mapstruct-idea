@@ -2,6 +2,7 @@ package org.mapstruct.intellij.domain;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
+import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -185,9 +186,9 @@ public class MapStructMapperGenerator {
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
 
         if (method.getDocComment() != null) {
-            method.getDocComment().replace(docCommentFromText);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment().replace(docCommentFromText));
         } else {
-            method.addAfter(docCommentFromText, null);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.addAfter(docCommentFromText, null));
         }
 
     }
@@ -214,9 +215,9 @@ public class MapStructMapperGenerator {
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
 
         if (method.getDocComment() != null) {
-            method.getDocComment().replace(docCommentFromText);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment().replace(docCommentFromText));
         } else {
-            method.addAfter(docCommentFromText, null);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.addAfter(docCommentFromText, null));
         }
 
     }
