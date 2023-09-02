@@ -45,7 +45,8 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                     // lambda 表达式中不进行处理
                     return;
 
-                } else if (PsiJavaPatterns.psiReturnStatement().inside(PsiMethod.class).accepts(returnStatement)) {
+                }
+                if (PsiJavaPatterns.psiReturnStatement().inside(PsiMethod.class).accepts(returnStatement)) {
 
                     PsiMethod psiMethod = PsiTreeUtil.getParentOfType(returnStatement, PsiMethod.class);
                     assert psiMethod != null;
