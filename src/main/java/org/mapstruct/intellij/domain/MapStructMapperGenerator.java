@@ -3,6 +3,7 @@ package org.mapstruct.intellij.domain;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
+import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiUtil;
 
@@ -119,6 +120,7 @@ public class MapStructMapperGenerator {
     private PsiMethod generateConvertListMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
         String methodName = "convertFrom" + sourceClassType.getClassName() + "List";
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1) + "List";
 
         /* ********************************************************
          *
@@ -128,6 +130,13 @@ public class MapStructMapperGenerator {
         // TODO:后续添加多个参数校验
         for (PsiMethod method : mapperClass.getMethods()) {
             if (method.getName().equals(methodName)) {
+
+                if (method.getDocComment() == null) {
+                    addOrReplaceDocComment(sourceClassType, targetClassType, method, sourceParamName);
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                }
+
+
                 return method;
             }
         }
@@ -137,18 +146,37 @@ public class MapStructMapperGenerator {
          * 如果当前类中，不存在了此方法，创建新的方法
          *
          ******************************************************** */
-        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1) + "List";
 
         String methodContent = "java.util.List<" + targetClassType.getCanonicalText() + "> " + methodName + "(java.util.List<" + sourceClassType.getCanonicalText() + "> " + sourceParamName + ");";
 
         PsiMethod psiMethod = elementFactory.createMethodFromText(methodContent, mapperClass);
 
         psiMethod.getModifierList().addAnnotation("org.mapstruct.IterableMapping(nullValueMappingStrategy = org.mapstruct.NullValueMappingStrategy.RETURN_DEFAULT)");
-        psiMethod.getModifierList().addAnnotation("org.springframework.lang.NonNull");
+//        psiMethod.getModifierList().addAnnotation("org.springframework.lang.NonNull");
 
         PsiMethod generatedNewMethod = (PsiMethod) mapperClass.add(psiMethod);
+        addOrReplaceDocComment(sourceClassType, targetClassType, generatedNewMethod, sourceParamName);
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(generatedNewMethod.getContainingFile());
         return generatedNewMethod;
+    }
+
+    private void addOrReplaceDocComment(PsiClassType sourceClassType, PsiClassType targetClassType, PsiMethod method, String sourceParamName) {
+        //noinspection ConcatenationWithEmptyString
+        String docComment = ""
+                + "/* \n"
+                + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
+                + " * @param " + sourceParamName + " [ required ] source objects\n"
+                + " * @return converted objects\n"
+                + " * \n"
+                + " */";
+        PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
+
+        if (method.getDocComment() != null) {
+            method.getDocComment().replace(docCommentFromText);
+        } else {
+            method.addAfter(docCommentFromText, null);
+        }
+
     }
 
     private PsiField createInstanceFieldIfNotExists(PsiClass mapperClass) {
