@@ -31,7 +31,7 @@ public class MapStructMapperGenerator {
 
     public PsiMethod generateMapperMethod(PsiClassType sourceType, PsiClassType targetType) {
 
-        // 如果目标类型是一个集合类型，找到目标类型 Iterable 的泛型类，使用泛型类，生成一个 Mapper
+        // 如果目标类型是一个集合类型,找到目标类型 Iterable 的泛型类,使用泛型类,生成一个 Mapper
         PsiClass targetTypeClass = targetType.resolveGenerics().getElement();
         if (targetTypeClass == null) {
             return null;
