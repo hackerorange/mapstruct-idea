@@ -18,134 +18,6 @@ import java.util.Set;
 
 public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectionTool {
 
-
-    private static final Set<String> IGNORE_CLASS_LIST = new HashSet<>();
-
-    static {
-
-
-        IGNORE_CLASS_LIST.add("java.math.BigDecimal");
-        IGNORE_CLASS_LIST.add("java.math.BigInteger");
-        IGNORE_CLASS_LIST.add("java.lang.AbstractMethodError");
-        IGNORE_CLASS_LIST.add("java.lang.AbstractStringBuilder");
-        IGNORE_CLASS_LIST.add("java.lang.Appendable");
-        IGNORE_CLASS_LIST.add("java.lang.ApplicationShutdownHooks");
-        IGNORE_CLASS_LIST.add("java.lang.ArithmeticException");
-        IGNORE_CLASS_LIST.add("java.lang.ArrayIndexOutOfBoundsException");
-        IGNORE_CLASS_LIST.add("java.lang.ArrayStoreException");
-        IGNORE_CLASS_LIST.add("java.lang.AssertionError");
-        IGNORE_CLASS_LIST.add("java.lang.AssertionStatusDirectives");
-        IGNORE_CLASS_LIST.add("java.lang.AutoCloseable");
-        IGNORE_CLASS_LIST.add("java.lang.Boolean");
-        IGNORE_CLASS_LIST.add("java.lang.BootstrapMethodError");
-        IGNORE_CLASS_LIST.add("java.lang.Byte");
-        IGNORE_CLASS_LIST.add("java.lang.Character");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterData");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterData0E");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterData00");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterData01");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterData02");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterDataLatin1");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterDataPrivateUse");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterDataUndefined");
-        IGNORE_CLASS_LIST.add("java.lang.CharacterName");
-        IGNORE_CLASS_LIST.add("java.lang.CharSequence");
-        IGNORE_CLASS_LIST.add("java.lang.Class");
-        IGNORE_CLASS_LIST.add("java.lang.ClassCastException");
-        IGNORE_CLASS_LIST.add("java.lang.ClassCircularityError");
-        IGNORE_CLASS_LIST.add("java.lang.ClassFormatError");
-        IGNORE_CLASS_LIST.add("java.lang.ClassLoader");
-        IGNORE_CLASS_LIST.add("java.lang.ClassLoaderHelper");
-        IGNORE_CLASS_LIST.add("java.lang.ClassNotFoundException");
-        IGNORE_CLASS_LIST.add("java.lang.ClassValue");
-        IGNORE_CLASS_LIST.add("java.lang.Cloneable");
-        IGNORE_CLASS_LIST.add("java.lang.CloneNotSupportedException");
-        IGNORE_CLASS_LIST.add("java.lang.Comparable");
-        IGNORE_CLASS_LIST.add("java.lang.Compiler");
-        IGNORE_CLASS_LIST.add("java.lang.ConditionalSpecialCasing");
-        IGNORE_CLASS_LIST.add("java.lang.Deprecated");
-        IGNORE_CLASS_LIST.add("java.lang.Double");
-        IGNORE_CLASS_LIST.add("java.lang.Enum");
-        IGNORE_CLASS_LIST.add("java.lang.EnumConstantNotPresentException");
-        IGNORE_CLASS_LIST.add("java.lang.Error");
-        IGNORE_CLASS_LIST.add("java.lang.Exception");
-        IGNORE_CLASS_LIST.add("java.lang.ExceptionInInitializerError");
-        IGNORE_CLASS_LIST.add("java.lang.Float");
-        IGNORE_CLASS_LIST.add("java.lang.FunctionalInterface");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalAccessError");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalAccessException");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalArgumentException");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalMonitorStateException");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalStateException");
-        IGNORE_CLASS_LIST.add("java.lang.IllegalThreadStateException");
-        IGNORE_CLASS_LIST.add("java.lang.IncompatibleClassChangeError");
-        IGNORE_CLASS_LIST.add("java.lang.IndexOutOfBoundsException");
-        IGNORE_CLASS_LIST.add("java.lang.InheritableThreadLocal");
-        IGNORE_CLASS_LIST.add("java.lang.InstantiationError");
-        IGNORE_CLASS_LIST.add("java.lang.InstantiationException");
-        IGNORE_CLASS_LIST.add("java.lang.Integer");
-        IGNORE_CLASS_LIST.add("java.lang.InternalError");
-        IGNORE_CLASS_LIST.add("java.lang.InterruptedException");
-        IGNORE_CLASS_LIST.add("java.lang.Iterable");
-        IGNORE_CLASS_LIST.add("java.lang.LinkageError");
-        IGNORE_CLASS_LIST.add("java.lang.Long");
-        IGNORE_CLASS_LIST.add("java.lang.Math");
-        IGNORE_CLASS_LIST.add("java.lang.NegativeArraySizeException");
-        IGNORE_CLASS_LIST.add("java.lang.NoClassDefFoundError");
-        IGNORE_CLASS_LIST.add("java.lang.NoSuchFieldError");
-        IGNORE_CLASS_LIST.add("java.lang.NoSuchFieldException");
-        IGNORE_CLASS_LIST.add("java.lang.NoSuchMethodError");
-        IGNORE_CLASS_LIST.add("java.lang.NoSuchMethodException");
-        IGNORE_CLASS_LIST.add("java.lang.NullPointerException");
-        IGNORE_CLASS_LIST.add("java.lang.Number");
-        IGNORE_CLASS_LIST.add("java.lang.NumberFormatException");
-        IGNORE_CLASS_LIST.add("java.lang.Object");
-        IGNORE_CLASS_LIST.add("java.lang.OutOfMemoryError");
-        IGNORE_CLASS_LIST.add("java.lang.Override");
-        IGNORE_CLASS_LIST.add("java.lang.Package");
-        IGNORE_CLASS_LIST.add("java.lang.Process");
-        IGNORE_CLASS_LIST.add("java.lang.ProcessBuilder");
-        IGNORE_CLASS_LIST.add("java.lang.ProcessEnvironment");
-        IGNORE_CLASS_LIST.add("java.lang.ProcessImpl");
-        IGNORE_CLASS_LIST.add("java.lang.Readable");
-        IGNORE_CLASS_LIST.add("java.lang.ReflectiveOperationException");
-        IGNORE_CLASS_LIST.add("java.lang.Runnable");
-        IGNORE_CLASS_LIST.add("java.lang.Runtime");
-        IGNORE_CLASS_LIST.add("java.lang.RuntimeException");
-        IGNORE_CLASS_LIST.add("java.lang.RuntimePermission");
-        IGNORE_CLASS_LIST.add("java.lang.SafeVarargs");
-        IGNORE_CLASS_LIST.add("java.lang.SecurityException");
-        IGNORE_CLASS_LIST.add("java.lang.SecurityManager");
-        IGNORE_CLASS_LIST.add("java.lang.Short");
-        IGNORE_CLASS_LIST.add("java.lang.Shutdown");
-        IGNORE_CLASS_LIST.add("java.lang.StackOverflowError");
-        IGNORE_CLASS_LIST.add("java.lang.StackTraceElement");
-        IGNORE_CLASS_LIST.add("java.lang.StrictMath");
-        IGNORE_CLASS_LIST.add("java.lang.String");
-        IGNORE_CLASS_LIST.add("java.lang.StringBuffer");
-        IGNORE_CLASS_LIST.add("java.lang.StringBuilder");
-        IGNORE_CLASS_LIST.add("java.lang.StringCoding");
-        IGNORE_CLASS_LIST.add("java.lang.StringIndexOutOfBoundsException");
-        IGNORE_CLASS_LIST.add("java.lang.SuppressWarnings");
-        IGNORE_CLASS_LIST.add("java.lang.System");
-        IGNORE_CLASS_LIST.add("java.lang.SystemClassLoaderAction");
-        IGNORE_CLASS_LIST.add("java.lang.Terminator");
-        IGNORE_CLASS_LIST.add("java.lang.Thread");
-        IGNORE_CLASS_LIST.add("java.lang.ThreadDeath");
-        IGNORE_CLASS_LIST.add("java.lang.ThreadGroup");
-        IGNORE_CLASS_LIST.add("java.lang.ThreadLocal");
-        IGNORE_CLASS_LIST.add("java.lang.Throwable");
-        IGNORE_CLASS_LIST.add("java.lang.TypeNotPresentException");
-        IGNORE_CLASS_LIST.add("java.lang.UNIXProcess");
-        IGNORE_CLASS_LIST.add("java.lang.UnknownError");
-        IGNORE_CLASS_LIST.add("java.lang.UnsatisfiedLinkError");
-        IGNORE_CLASS_LIST.add("java.lang.UnsupportedClassVersionError");
-        IGNORE_CLASS_LIST.add("java.lang.UnsupportedOperationException");
-        IGNORE_CLASS_LIST.add("java.lang.VerifyError");
-        IGNORE_CLASS_LIST.add("java.lang.VirtualMachineError");
-        IGNORE_CLASS_LIST.add("java.lang.Void");
-    }
-
     @Override
     public @NotNull PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
 
@@ -309,10 +181,16 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                 if (resolvedTargetType == null) {
                     return Boolean.FALSE;
                 }
-
-                if (IGNORE_CLASS_LIST.contains(resolvedTargetType.getQualifiedName())) {
+                if (resolvedTargetType.getQualifiedName() == null) {
                     return Boolean.FALSE;
                 }
+                if (resolvedTargetType.getQualifiedName().startsWith("java.math.")) {
+                    return Boolean.FALSE;
+                }
+                if (resolvedTargetType.getQualifiedName().startsWith("java.lang.")) {
+                    return Boolean.FALSE;
+                }
+
                 PsiClass resolvedSourceType = sourceClassType.resolve();
                 if (resolvedSourceType == null) {
                     return Boolean.FALSE;
