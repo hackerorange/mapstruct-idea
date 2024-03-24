@@ -1,11 +1,14 @@
 package org.mapstruct.intellij.domain;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.patterns.PsiJavaPatterns;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
@@ -257,6 +260,28 @@ public class MapStructMapperGenerator {
     }
 
     private PsiClass createClassIfNotExists(PsiDirectory converterDirectory, String mapperClass) {
+
+        // 根据类名，查找是否存在同名的类，如果是同名的类
+        PsiClass[] classesByName = PsiShortNamesCache.getInstance(converterDirectory.getProject()).getClassesByName(mapperClass, GlobalSearchScope.allScope(converterDirectory.getProject()));
+
+        for (PsiClass psiClass : classesByName) {
+            // 如果是内部类，暂不考虑
+            if (PsiJavaPatterns.psiClass().inside(PsiClass.class).accepts(psiClass)) {
+                continue;
+            }
+            // 如果不可写，不考虑
+            if (!psiClass.isWritable()) {
+                continue;
+            }
+            // 如果没有 @Mapper 注解，不考虑
+            PsiModifierList modifierList = psiClass.getModifierList();
+            if (modifierList == null) {
+                continue;
+            }
+            if (modifierList.hasAnnotation(MAPPER_ANNOTATION_FQN)) {
+                return psiClass;
+            }
+        }
 
         /* ********************************************************************************
          *
