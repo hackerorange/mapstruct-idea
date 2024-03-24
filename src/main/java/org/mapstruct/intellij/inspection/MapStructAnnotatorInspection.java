@@ -2,7 +2,6 @@ package org.mapstruct.intellij.inspection;
 
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool;
 import com.intellij.codeInspection.ProblemsHolder;
-import com.intellij.openapi.project.Project;
 import com.intellij.patterns.PsiJavaPatterns;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -11,10 +10,9 @@ import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NotNull;
 import org.mapstruct.intellij.MapStructBundle;
 import org.mapstruct.intellij.quickfix.MapStructMapperGenerateAndUseConvertMethodQuickFix;
+import org.mapstruct.intellij.quickfix.MapStructMapperGenerateAndUseConvertMethodQuickFix2;
 
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectionTool {
 
@@ -63,6 +61,13 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
                                 new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
                         );
+
+                        holder.registerProblem(
+                                returnStatement,
+                                "[MapStruct] generate mapper class and use mapper method in this class",
+                                new MapStructMapperGenerateAndUseConvertMethodQuickFix2(sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
+                        );
+
                     }
                 }
 
@@ -112,6 +117,12 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
                                     MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
                                     new MapStructMapperGenerateAndUseConvertMethodQuickFix(initializer, sourceClassType, targetClassType)
                             );
+                            holder.registerProblem(
+                                    declaredElement,
+                                    "[MapStruct] generate mapper class and use mapper method in this class",
+                                    new MapStructMapperGenerateAndUseConvertMethodQuickFix2(initializer, (PsiClassType) sourceType, (PsiClassType) targetType)
+                            );
+
                         }
 
                     }

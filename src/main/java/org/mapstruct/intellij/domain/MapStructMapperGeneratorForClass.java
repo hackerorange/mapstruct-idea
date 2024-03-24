@@ -12,17 +12,17 @@ import java.util.Objects;
 
 import static org.mapstruct.intellij.util.MapstructUtil.MAPPER_ANNOTATION_FQN;
 
-public class MapStructMapperGenerator {
+public class MapStructMapperGeneratorForClass {
 
     private final Project project;
-    private final PsiDirectory converterDirectory;
+    private final PsiClass converterDirectory;
     private final JavaPsiFacade javaPsiFacade;
 
     private final PsiClass iterableClass;
     private final PsiElementFactory elementFactory;
 
 
-    public MapStructMapperGenerator(Project project, PsiDirectory converterDirectory) {
+    public MapStructMapperGeneratorForClass(Project project, PsiClass converterDirectory) {
         this.project = project;
         this.converterDirectory = converterDirectory;
         this.javaPsiFacade = JavaPsiFacade.getInstance(project);
@@ -256,22 +256,11 @@ public class MapStructMapperGenerator {
         return (PsiField) mapperClass.add(instanceField);
     }
 
-    private PsiClass createClassIfNotExists(PsiDirectory converterDirectory, String mapperClass) {
+    private PsiClass createClassIfNotExists(PsiClass converterDirectory, String mapperClass) {
 
-        /* ********************************************************************************
-         *
-         * find class by name in the directory, if class exists, use it
-         *
-         ********************************************************************************* */
-        for (PsiFile psiFile : converterDirectory.getFiles()) {
-            if (psiFile instanceof PsiJavaFile) {
-                PsiJavaFile psiJavaFile = (PsiJavaFile) psiFile;
-                for (PsiClass psiClass : psiJavaFile.getClasses()) {
-                    if (Objects.equals(psiClass.getName(), mapperClass)) {
-                        return psiClass;
-                    }
-                }
-
+        for (PsiClass innerClass : converterDirectory.getInnerClasses()) {
+            if (Objects.equals(innerClass.getName(), mapperClass)) {
+                return innerClass;
             }
         }
 
