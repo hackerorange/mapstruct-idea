@@ -49,12 +49,14 @@ import org.mapstruct.intellij.util.MapstructUtil;
  */
 public class JavaExpressionInjector implements MultiHostInjector {
 
-    private static final Pattern JAVA_EXPRESSION = Pattern.compile( "\"java\\(.*\\)\"" );
+    public static final Pattern JAVA_EXPRESSION = Pattern.compile( "^(\"|\"{3})\\s*java\\((.*)\\)\\s*\\1$",
+            Pattern.DOTALL );
 
     private static final ElementPattern<PsiElement> PATTERN =
         StandardPatterns.or(
             MapstructElementUtils.mappingElementPattern( "expression" ),
-            MapstructElementUtils.mappingElementPattern( "defaultExpression" )
+            MapstructElementUtils.mappingElementPattern( "defaultExpression" ),
+            MapstructElementUtils.mappingElementPattern( "conditionExpression" )
         );
 
     private void importIfNecessary(PsiClass cls, @NotNull Set<String> imports) {
@@ -68,11 +70,10 @@ public class JavaExpressionInjector implements MultiHostInjector {
 
     private void appendType(@NotNull StringBuilder sb, @NotNull Set<String> imports, @NotNull PsiType type) {
         importIfNecessary( PsiUtil.resolveClassInType( type ), imports );
-        if ( !( type instanceof PsiClassType ) ) {
+        if ( !( type instanceof PsiClassType ct ) ) {
             sb.append( type.getPresentableText() );
             return;
         }
-        PsiClassType ct = (PsiClassType) type;
         sb.append( ct.getName() );
         PsiType[] typeParameters = ct.getParameters();
         if ( typeParameters.length == 0 ) {
@@ -176,18 +177,18 @@ public class JavaExpressionInjector implements MultiHostInjector {
                             attributeValue );
                         if ( references.length > 0 ) {
                             PsiElement resolved = references[0].resolve();
-                            if ( resolved instanceof PsiMethod ) {
+                            if ( resolved instanceof PsiMethod resolvedPsiMethod ) {
                                 PsiParameter[] psiParameters =
-                                        ((PsiMethod) resolved).getParameterList().getParameters();
+                                        resolvedPsiMethod.getParameterList().getParameters();
                                 if ( psiParameters.length > 0) {
                                     targetType = psiParameters[0].getType();
                                 }
                             }
-                            else if ( resolved instanceof PsiParameter ) {
-                                targetType = ( (PsiParameter) resolved ).getType();
+                            else if ( resolved instanceof PsiParameter resolvedPsiParameter ) {
+                                targetType = resolvedPsiParameter.getType();
                             }
-                            else if ( resolved instanceof PsiField) {
-                                targetType = ( (PsiField) resolved ).getType();
+                            else if ( resolved instanceof PsiField resolvedPsiField ) {
+                                targetType = resolvedPsiField.getType();
                             }
                         }
                     }
@@ -257,12 +258,13 @@ public class JavaExpressionInjector implements MultiHostInjector {
                         for ( PsiAnnotationMemberValue importValue : AnnotationUtil.arrayAttributeValues(
                             attribute.getValue() ) ) {
 
-                            if ( importValue instanceof PsiJavaCodeReferenceElement ) {
-                                imports.add( ( (PsiJavaCodeReferenceElement) importValue ).getQualifiedName() );
+                            if ( importValue instanceof PsiJavaCodeReferenceElement importJavaCodeReferenceElement ) {
+                                imports.add( importJavaCodeReferenceElement.getQualifiedName() );
                             }
-                            else if ( importValue instanceof PsiClassObjectAccessExpression ) {
+                            else if ( importValue instanceof PsiClassObjectAccessExpression
+                                    importClassObjectAccessExpression ) {
                                 PsiJavaCodeReferenceElement referenceElement =
-                                    ( (PsiClassObjectAccessExpression) importValue ).getOperand()
+                                        importClassObjectAccessExpression.getOperand()
                                         .getInnermostComponentReferenceElement();
                                 if ( referenceElement != null ) {
                                     imports.add( referenceElement.getQualifiedName() );
@@ -279,10 +281,21 @@ public class JavaExpressionInjector implements MultiHostInjector {
                         + prefixBuilder,
                     ";\n    }\n}",
                     (PsiLanguageInjectionHost) context,
-                    new TextRange( "\"java(".length(), context.getTextRange().getLength() - ")\"".length() )
+                    getTextRange( context )
                 )
                 .doneInjecting();
         }
+    }
+
+    @NotNull
+    private static TextRange getTextRange(@NotNull PsiElement context) {
+        String text = context.getText();
+        return new TextRange(text.indexOf( "java(" ) + 5,
+                context.getTextRange().getLength() - getEndOfExpression( text ) );
+    }
+
+    private static int getEndOfExpression(@NotNull String text) {
+        return text.length() - text.lastIndexOf( ')' );
     }
 
     @NotNull

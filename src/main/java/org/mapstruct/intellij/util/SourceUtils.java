@@ -11,8 +11,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import com.intellij.codeInsight.AnnotationUtil;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.PsiClass;
@@ -22,10 +25,13 @@ import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiRecordComponent;
 import com.intellij.psi.PsiSubstitutor;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.PsiTypes;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static org.mapstruct.intellij.util.MapstructAnnotationUtils.findAllDefinedMappingAnnotations;
 import static org.mapstruct.intellij.util.MapstructUtil.canDescendIntoType;
 import static org.mapstruct.intellij.util.MapstructUtil.getSourceParameters;
 import static org.mapstruct.intellij.util.MapstructUtil.publicFields;
@@ -67,6 +73,22 @@ public class SourceUtils {
     }
 
     /**
+     * Find all defined {@link org.mapstruct.Mapping#source()} for the given method
+     *
+     * @param method that needs to be checked
+     * @param mapStructVersion the MapStruct project version
+     *
+     * @return see description
+     */
+    public static Stream<String> findAllDefinedMappingSources(@NotNull PsiMethod method,
+                                                              @NotNull MapStructVersion mapStructVersion) {
+        return findAllDefinedMappingAnnotations( method, mapStructVersion )
+            .map( psiAnnotation -> AnnotationUtil.getDeclaredStringAttributeValue( psiAnnotation, "source" ) )
+            .filter( Objects::nonNull )
+            .filter( s -> !s.isEmpty() );
+    }
+
+    /**
      * Find the class for the given {@code parameter}
      *
      * @param parameter the parameter
@@ -93,11 +115,11 @@ public class SourceUtils {
 
     public static Map<String, Pair<? extends PsiElement, PsiSubstitutor>> publicReadAccessors(
         @Nullable PsiElement psiElement) {
-        if ( psiElement instanceof PsiMethod ) {
-            return publicReadAccessors( ( (PsiMethod) psiElement ).getReturnType() );
+        if ( psiElement instanceof PsiMethod psiMethod ) {
+            return publicReadAccessors( psiMethod.getReturnType() );
         }
-        else if ( psiElement instanceof PsiParameter ) {
-            return publicReadAccessors( ( (PsiParameter) psiElement ).getType() );
+        else if ( psiElement instanceof PsiParameter psiParameter ) {
+            return publicReadAccessors( psiParameter.getType() );
         }
 
         return Collections.emptyMap();
@@ -166,7 +188,7 @@ public class SourceUtils {
         // This logic is aligned with the DefaultAccessorNamingStrategy
 
         PsiType returnType = method.getReturnType();
-        if ( returnType == null || PsiType.VOID.equals( returnType ) ) {
+        if ( returnType == null || PsiTypes.voidType().equals( returnType ) ) {
             return null;
         }
 
@@ -180,7 +202,7 @@ public class SourceUtils {
             }
         }
         else if ( methodName.startsWith( "is" ) && (
-            PsiType.BOOLEAN.equals( returnType ) ||
+            PsiTypes.booleanType().equals( returnType ) ||
                 returnType.equalsToText( CommonClassNames.JAVA_LANG_BOOLEAN ) )
         ) {
             // boolean getter
@@ -190,5 +212,14 @@ public class SourceUtils {
             return null;
         }
 
+    }
+
+    @Nullable
+    public static PsiType[] getGenericTypes(@Nullable PsiParameter fromMapMappingParameter) {
+        if (fromMapMappingParameter == null ||
+                !(fromMapMappingParameter.getType() instanceof PsiClassReferenceType)) {
+            return null;
+        }
+        return ((PsiClassReferenceType) fromMapMappingParameter.getType()).getParameters();
     }
 }

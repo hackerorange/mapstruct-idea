@@ -2,10 +2,10 @@
 
 An IntelliJ IDEA plugin for working with MapStruct
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://github.com/mapstruct/mapstruct/blob/master/LICENSE.txt)
+[![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://github.com/mapstruct/mapstruct/blob/main/LICENSE.txt)
 
-[![Build Status](https://github.com/mapstruct/mapstruct-idea/workflows/CI/badge.svg?branch=master)](https://github.com/mapstruct/mapstruct-idea/actions?query=workflow%3ACI+branch%3Amaster)
-[![Coverage Status](https://codecov.io/gh/mapstruct/mapstruct-idea/branch/master/graph/badge.svg)](https://codecov.io/gh/mapstruct/mapstruct-idea)
+[![Build Status](https://github.com/mapstruct/mapstruct-idea/workflows/CI/badge.svg?branch=main)](https://github.com/mapstruct/mapstruct-idea/actions?query=workflow%3ACI+branch%3Amain)
+[![Coverage Status](https://codecov.io/gh/mapstruct/mapstruct-idea/branch/main/graph/badge.svg)](https://codecov.io/gh/mapstruct/mapstruct-idea)
 
 * [What is MapStruct?](#what-is-mapstruct)
 * [Features](#features)
@@ -34,7 +34,14 @@ To learn more about MapStruct have a look at the [mapstruct](https://github.com/
   * `@Mapper` or `@MapperConfig` annotation missing
   * Unmapped target properties with quick fixes: Add unmapped target property and Ignore unmapped target property.
     Uses `unmappedTargetPolicy` to determine the severity that should be used
-
+  * No `source` defined in `@Mapping` annotation
+  * More than one `source` in `@Mapping` annotation defined with quick fixes: Remove `source`. Remove `constant`. Remove `expression`. Use `constant` as `defaultValue`. Use `expression` as `defaultExpression`. 
+  * More than one default source in `@Mapping` annotation defined with quick fixes: Remove `defaultValue`. Remove `defaultExpression`.
+  * `target` mapped more than once by `@Mapping` annotations with quick fixes: Remove annotation and change target property.
+  * `*` used as a source in `@Mapping` annotation with quick fixes: Replace `*` with method parameter name.
+  * Unknown reference inspection for `source` and `target` in `@Mapping` and `@ValueMapping` annotation. 
+  * Unknown reference inspection for `qualifiedByName` in `@Mapping` annotation
+ 
 ## Requirements
 
 The MapStruct plugin requires Java 11 or later

@@ -192,6 +192,7 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
     public void testExpressionWithNoTargetDefinedMapper() {
         noTargetDefinedMapper( "expression" );
         noTargetDefinedMapper( "defaultExpression" );
+        noTargetDefinedMapper( "conditionExpression" );
     }
 
     protected void noTargetDefinedMapper(String attribute) {
@@ -215,6 +216,7 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
     public void testExpressionWithoutJavaExpression() {
         withoutJavaExpression( "expression" );
         withoutJavaExpression( "defaultExpression" );
+        withoutJavaExpression( "conditionExpression" );
     }
 
     protected void withoutJavaExpression(String attribute) {
@@ -233,6 +235,7 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
     public void testExpressionWithTargetDefinedMapper() {
         withTargetDefinedMapper( "expression" );
         withTargetDefinedMapper( "defaultExpression" );
+        withTargetDefinedMapper( "conditionExpression" );
     }
 
     protected void withTargetDefinedMapper(String attribute) {
@@ -265,9 +268,46 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         assertThat( elementAt.getText() ).isEqualTo( ";" );
     }
 
+    public void testExpressionWithTargetDefinedAndWhitespacesMapper() {
+        withTargetDefinedAndWhitespaceMapper( "expression" );
+        withTargetDefinedAndWhitespaceMapper( "defaultExpression" );
+        withTargetDefinedAndWhitespaceMapper( "conditionExpression" );
+    }
+
+    protected void withTargetDefinedAndWhitespaceMapper(String attribute) {
+        String mapping = "@Mapping(target = \"manufacturingYear\", " + attribute + " = \" java(car.<caret>)  \")\n";
+        @Language("java")
+        String mapper = formatMapper( CAR_MAPPER, mapping );
+        PsiFile file = configureMapperByText( mapper );
+
+        assertThat( myFixture.completeBasic() )
+                .extracting( LookupElementPresentation::renderElement )
+                .extracting( LookupElementPresentation::getItemText )
+                .contains(
+                        "getMake",
+                        "setMake",
+                        "getManufacturingDate",
+                        "setManufacturingDate",
+                        "getNumberOfSeats",
+                        "setNumberOfSeats"
+                );
+
+        assertThat( myFixture.complete( CompletionType.SMART ) )
+                .extracting( LookupElementPresentation::renderElement )
+                .extracting( LookupElementPresentation::getItemText )
+                .containsExactlyInAnyOrder( "getMake", "toString" );
+
+        PsiElement elementAt = file.findElementAt( myFixture.getCaretOffset() );
+        assertThat( elementAt )
+                .isNotNull()
+                .isInstanceOf( PsiJavaToken.class );
+        assertThat( elementAt.getText() ).isEqualTo( ";" );
+    }
+
     public void testExpressionWithTargetDefinedMapperInMappings() {
         withTargetDefinedMapperInMappings( "expression" );
         withTargetDefinedMapperInMappings( "defaultExpression" );
+        withTargetDefinedMapperInMappings( "conditionExpression" );
     }
 
     protected void withTargetDefinedMapperInMappings(String attribute) {
@@ -305,6 +345,7 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
     public void testExpressionWithMapperWithImports() {
         withMapperWithImports( "expression" );
         withMapperWithImports( "defaultExpression" );
+        withMapperWithImports( "conditionExpression" );
     }
 
     protected void withMapperWithImports(String attribute) {
@@ -313,26 +354,28 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER, mapping, "imports = java.util.Collections.class" );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import java.util.Collections;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car\n" +
-            "    ) {\n" +
-            "        return Collections;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import java.util.Collections;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Car car
+                    ) {
+                        return Collections;
+                    }
+                }""" );
 
     }
 
     public void testExpressionWithMapperWithCustomImports() {
         withMapperWithCustomImports( "expression" );
         withMapperWithCustomImports( "defaultExpression" );
+        withMapperWithCustomImports( "conditionExpression" );
     }
 
     protected void withMapperWithCustomImports(String attribute) {
@@ -341,25 +384,27 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER, mapping, "imports = org.example.dto.Utils.class" );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "import org.example.dto.Utils;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car\n" +
-            "    ) {\n" +
-            "        return Utils;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+                import org.example.dto.Utils;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Car car
+                    ) {
+                        return Utils;
+                    }
+                }""" );
     }
 
     public void testExpressionWithMapperWithoutImports() {
         withMapperWithoutImports( "expression" );
         withMapperWithoutImports( "defaultExpression" );
+        withMapperWithoutImports( "conditionExpression" );
     }
 
     protected void withMapperWithoutImports(String attribute) {
@@ -368,25 +413,27 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car\n" +
-            "    ) {\n" +
-            "        return Collections;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Car car
+                    ) {
+                        return Collections;
+                    }
+                }""" );
 
     }
 
     public void testExpressionWithMultiSourceParameters() {
         withMultiSourceParameters( "expression" );
         withMultiSourceParameters( "defaultExpression" );
+        withMultiSourceParameters( "conditionExpression" );
     }
 
     protected void withMultiSourceParameters(String attribute) {
@@ -395,25 +442,27 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER_MULTI_SOURCE, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car,\n" +
-            "        String make\n" +
-            "    ) {\n" +
-            "        return car.;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Car car,
+                        String make
+                    ) {
+                        return car.;
+                    }
+                }""" );
     }
 
     public void testExpressionWithGenericSourceParameters() {
         withGenericSourceParameters( "expression" );
         withGenericSourceParameters( "defaultExpression" );
+        withGenericSourceParameters( "conditionExpression" );
     }
 
     protected void withGenericSourceParameters(String attribute) {
@@ -423,25 +472,27 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER_FROM_WRAPPER, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "import org.example.dto.Wrapper;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Wrapper<Car> carWrapper\n" +
-            "    ) {\n" +
-            "        return carWrapper.getValue().;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+                import org.example.dto.Wrapper;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Wrapper<Car> carWrapper
+                    ) {
+                        return carWrapper.getValue().;
+                    }
+                }""" );
     }
 
     public void testExpressionWithSourceParameterWithAnnotations() {
         withExpressionWithSourceParameterWithAnnotations( "expression" );
         withExpressionWithSourceParameterWithAnnotations( "defaultExpression" );
+        withExpressionWithSourceParameterWithAnnotations( "conditionExpression" );
     }
 
     protected void withExpressionWithSourceParameterWithAnnotations(String attribute) {
@@ -451,26 +502,28 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER_FROM_WRAPPER_WITH_ANNOTATION, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "import org.example.dto.Wrapper;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        @Context\n" +
-            "        Wrapper<Car> carWrapper\n" +
-            "    ) {\n" +
-            "        return carWrapper.getValue().;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+                import org.example.dto.Wrapper;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        @Context
+                        Wrapper<Car> carWrapper
+                    ) {
+                        return carWrapper.getValue().;
+                    }
+                }""" );
     }
 
     public void testExpressionWithSourceParameterWithMultipleGenerics() {
         withExpressionWithSourceParameterWithMultipleGenerics( "expression" );
         withExpressionWithSourceParameterWithMultipleGenerics( "defaultExpression" );
+        withExpressionWithSourceParameterWithMultipleGenerics( "conditionExpression" );
     }
 
     protected void withExpressionWithSourceParameterWithMultipleGenerics(String attribute) {
@@ -480,26 +533,28 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER_FROM_WRAPPER_WITH_MULTI_GENERICS, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import java.util.function.BiFunction;\n" +
-            "import org.example.dto.Car;\n" +
-            "import org.example.dto.Wrapper;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Wrapper<BiFunction<String, Number, Car>> carWrapper\n" +
-            "    ) {\n" +
-            "        return carWrapper.getValue().apply(null, null).;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import java.util.function.BiFunction;
+                import org.example.dto.Car;
+                import org.example.dto.Wrapper;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    String __test__(
+                        Wrapper<BiFunction<String, Number, Car>> carWrapper
+                    ) {
+                        return carWrapper.getValue().apply(null, null).;
+                    }
+                }""" );
     }
 
     public void testExpressionWithGenericMethod() {
         withExpressionWithGenericMethod( "expression" );
         withExpressionWithGenericMethod( "defaultExpression" );
+        withExpressionWithGenericMethod( "conditionExpression" );
     }
 
     protected void withExpressionWithGenericMethod(String attribute) {
@@ -508,24 +563,26 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( CAR_MAPPER_FROM_NUMBER_WRAPPER, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.NumberWrapper;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    implements CarMapper {\n" +
-            "\n" +
-            "    <T extends Number> int __test__(\n" +
-            "        NumberWrapper<T> numberWrapper\n" +
-            "    ) {\n" +
-            "        return numberWrapper.;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.NumberWrapper;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    implements CarMapper {
+
+                    <T extends Number> int __test__(
+                        NumberWrapper<T> numberWrapper
+                    ) {
+                        return numberWrapper.;
+                    }
+                }""" );
     }
 
     public void testExpressionWithGenericMapper() {
         withGenericMapper( "expression" );
         withGenericMapper( "defaultExpression" );
+        withGenericMapper( "conditionExpression" );
     }
 
     protected void withGenericMapper(String attribute) {
@@ -534,25 +591,27 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         String mapper = formatMapper( GENERIC_MAPPER, mapping );
         configureMapperByText( mapper );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl<T, R>\n" +
-            "    implements CarMapper<T, R> {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car,\n" +
-            "        String make\n" +
-            "    ) {\n" +
-            "        return car.;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl<T, R>
+                    implements CarMapper<T, R> {
+
+                    String __test__(
+                        Car car,
+                        String make
+                    ) {
+                        return car.;
+                    }
+                }""" );
     }
 
     public void testExpressionWithClassMapper() {
         withClassMapper( "expression" );
         withClassMapper( "defaultExpression" );
+        withClassMapper( "conditionExpression" );
     }
 
     protected void withClassMapper(String attribute) {
@@ -569,24 +628,26 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
             "    CarDto carToCarDto(Car car);\n" +
             "}" );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    extends CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car\n" +
-            "    ) {\n" +
-            "        return car.;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    extends CarMapper {
+
+                    String __test__(
+                        Car car
+                    ) {
+                        return car.;
+                    }
+                }""" );
     }
 
     public void testExpressionWithTargetUsingStaticString() {
         withTargetUsingStaticString( "expression" );
         withTargetUsingStaticString( "defaultExpression" );
+        withTargetUsingStaticString( "conditionExpression" );
     }
 
     protected void withTargetUsingStaticString(String attribute) {
@@ -604,24 +665,26 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
             "    CarDto carToCarDto(Car car);\n" +
             "}" );
 
-        assertJavaFragment( "import CarMapper;\n" +
-            "import org.example.dto.Car;\n" +
-            "\n" +
-            "@SuppressWarnings(\"unused\")\n" +
-            "abstract class CarMapperImpl\n" +
-            "    extends CarMapper {\n" +
-            "\n" +
-            "    String __test__(\n" +
-            "        Car car\n" +
-            "    ) {\n" +
-            "        return car.;\n" +
-            "    }\n" +
-            "}" );
+        assertJavaFragment( """
+                import CarMapper;
+                import org.example.dto.Car;
+
+                @SuppressWarnings("unused")
+                abstract class CarMapperImpl
+                    extends CarMapper {
+
+                    String __test__(
+                        Car car
+                    ) {
+                        return car.;
+                    }
+                }""" );
     }
 
     public void testExpressionWithMapperToDtoWithoutAccessors() {
         withMapperToDtoWithoutAccessors( "expression" );
         withMapperToDtoWithoutAccessors( "defaultExpression" );
+        withMapperToDtoWithoutAccessors( "conditionExpression" );
     }
 
     protected void withMapperToDtoWithoutAccessors(String attribute) {
@@ -651,6 +714,43 @@ public class JavaExpressionInjectionTest extends MapstructBaseCompletionTestCase
         assertThat( elementAt )
             .isNotNull()
             .isInstanceOf( PsiJavaToken.class );
+        assertThat( elementAt.getText() ).isEqualTo( ";" );
+    }
+
+    public void testWithTextBlockAndTargetDefined() {
+        withTextBlockAndTargetDefined( "expression" );
+        withTextBlockAndTargetDefined( "defaultExpression" );
+        withTextBlockAndTargetDefined( "conditionExpression" );
+    }
+
+    protected void withTextBlockAndTargetDefined(String attribute) {
+        String mapping = "@Mapping(target = \"manufacturingYear\", " + attribute
+                + " = \"\"\"\njava(car.<caret>)\"\"\")\n";
+        @Language("java")
+        String mapper = formatMapper( CAR_MAPPER, mapping );
+        PsiFile file = configureMapperByText( mapper );
+
+        assertThat( myFixture.completeBasic() )
+                .extracting( LookupElementPresentation::renderElement )
+                .extracting( LookupElementPresentation::getItemText )
+                .contains(
+                        "getMake",
+                        "setMake",
+                        "getManufacturingDate",
+                        "setManufacturingDate",
+                        "getNumberOfSeats",
+                        "setNumberOfSeats"
+                );
+
+        assertThat( myFixture.complete( CompletionType.SMART ) )
+                .extracting( LookupElementPresentation::renderElement )
+                .extracting( LookupElementPresentation::getItemText )
+                .containsExactlyInAnyOrder( "getMake", "toString" );
+
+        PsiElement elementAt = file.findElementAt( myFixture.getCaretOffset() );
+        assertThat( elementAt )
+                .isNotNull()
+                .isInstanceOf( PsiJavaToken.class );
         assertThat( elementAt.getText() ).isEqualTo( ";" );
     }
 

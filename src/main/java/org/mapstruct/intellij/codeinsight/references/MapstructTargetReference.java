@@ -41,6 +41,7 @@ import static org.mapstruct.intellij.util.TargetUtils.getRelevantType;
 import static org.mapstruct.intellij.util.TargetUtils.isBuilderEnabled;
 import static org.mapstruct.intellij.util.TargetUtils.publicWriteAccessors;
 import static org.mapstruct.intellij.util.TargetUtils.resolveBuilderOrSelfClass;
+import static org.mapstruct.intellij.util.TypeUtils.firstParameterPsiType;
 
 /**
  * Reference for {@link org.mapstruct.Mapping#target()}.
@@ -190,17 +191,17 @@ class MapstructTargetReference extends MapstructBaseReference {
     PsiType resolvedType() {
         PsiElement element = resolve();
 
-        if ( element instanceof PsiMethod ) {
-            return firstParameterPsiType( (PsiMethod) element );
+        if ( element instanceof PsiMethod psiMethod ) {
+            return firstParameterPsiType( psiMethod );
         }
-        else if ( element instanceof PsiParameter ) {
-            return ( (PsiParameter) element ).getType();
+        else if ( element instanceof PsiParameter psiParameter ) {
+            return psiParameter.getType();
         }
-        else if ( element instanceof PsiRecordComponent ) {
-            return ( (PsiRecordComponent) element ).getType();
+        else if ( element instanceof PsiRecordComponent psiRecordComponent ) {
+            return psiRecordComponent.getType();
         }
-        else if ( element instanceof PsiField ) {
-            return ( (PsiField) element ).getType();
+        else if ( element instanceof PsiField psiField ) {
+            return psiField.getType();
         }
 
         return null;
@@ -216,30 +217,15 @@ class MapstructTargetReference extends MapstructBaseReference {
     }
 
     private static PsiType memberPsiType(PsiElement psiMember) {
-        if ( psiMember instanceof PsiMethod ) {
-            return firstParameterPsiType( (PsiMethod) psiMember );
+        if ( psiMember instanceof PsiMethod psiMemberMethod ) {
+            return firstParameterPsiType( psiMemberMethod );
         }
-        else if ( psiMember instanceof PsiVariable ) {
-            return ( (PsiVariable) psiMember ).getType();
+        else if ( psiMember instanceof PsiVariable psiMemberVariable ) {
+            return psiMemberVariable.getType();
         }
         else {
             return null;
         }
 
-    }
-
-    /**
-     * Util function for extracting the type of the first parameter of a method.
-     *
-     * @param psiMethod the method to extract the parameter from
-     *
-     * @return the type of the first parameter of the method
-     */
-    private static PsiType firstParameterPsiType(PsiMethod psiMethod) {
-        PsiParameter[] psiParameters = psiMethod.getParameterList().getParameters();
-        if ( psiParameters.length == 0) {
-            return null;
-        }
-        return psiParameters[0].getType();
     }
 }

@@ -38,6 +38,13 @@ If you want to discuss specific topics, then ping me (@filiphr) in the MapStruct
         <li><code>@Mapper</code> or <code>@MapperConfig</code> annotation missing</li>
         <li>Unmapped target properties with quick fixes: Add unmapped target property and Ignore unmapped target property.
             Uses <code>unmappedTargetPolicy</code> to determine the severity that should be used</li>
+        <li>No <code>source</code> defined in <code>@Mapping</code> annotation</li>
+        <li>More than one <code>source</code> in <code>@Mapping</code> annotation defined with quick fixes: Remove <code>source</code>. Remove <code>constant</code>. Remove <code>expression</code>. Use <code>constant</code> as <code>defaultValue</code>. Use <code>expression</code> as <code>defaultExpression</code>.</li>
+        <li>More than one default source in <code>@Mapping</code> annotation defined with quick fixes: Remove <code>defaultValue</code>. Remove <code>defaultExpression</code>.</li>
+        <li><code>target</code> mapped more than once by <code>@Mapping</code> annotations with quick fixes: Remove annotation and change target property.</li>
+        <li><code>*</code> used as a source in <code>@Mapping</code> annotations with quick fixes: Replace <code>*</code> with method parameter name.</li>
+        <li>Unknown reference inspection for <code>source</code> and <code>target</code> in <code>@Mapping</code> and <code>@ValueMapping</code> annotation. </li>
+        <li>Unknown reference inspection for <code>qualifiedByName</code> in <code>@Mapping</code> annotation. </li>
     </ul>
     </li>
 </ul>

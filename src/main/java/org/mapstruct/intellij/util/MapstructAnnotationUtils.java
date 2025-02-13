@@ -45,6 +45,7 @@ import com.intellij.psi.PsiModifierListOwner;
 import com.intellij.psi.PsiNameValuePair;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
+import com.intellij.psi.impl.source.tree.java.PsiAnnotationParamListImpl;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
@@ -147,8 +148,8 @@ public class MapstructAnnotationUtils {
     private static void moveCaretToEmptySourceAttribute(@NotNull Project project, PsiElement element) {
 
         FileEditor selectedEditor = FileEditorManager.getInstance( project ).getSelectedEditor();
-        if ( selectedEditor instanceof TextEditor ) {
-            Editor editor = ( (TextEditor) selectedEditor ).getEditor();
+        if ( selectedEditor instanceof TextEditor textEditor ) {
+            Editor editor = textEditor.getEditor();
 
             TextRange textRange = element.getTextRange();
             String textOfElement = String.valueOf( editor.getDocument()
@@ -296,48 +297,49 @@ public class MapstructAnnotationUtils {
     private static Stream<PsiAnnotation> findAllDefinedMappingAnnotations(@NotNull PsiModifierListOwner owner,
                                                                           boolean includeMetaAnnotations) {
         //TODO cache
-        Stream<PsiAnnotation> mappingsAnnotations = Stream.empty();
         PsiAnnotation mappings = findAnnotation( owner, true, MapstructUtil.MAPPINGS_ANNOTATION_FQN );
-        if ( mappings != null ) {
-            //TODO maybe there is a better way to do this, but currently I don't have that much knowledge
-            PsiAnnotationMemberValue mappingsValue = mappings.findDeclaredAttributeValue( null );
-            if ( mappingsValue instanceof PsiArrayInitializerMemberValue ) {
-                mappingsAnnotations = Stream.of( ( (PsiArrayInitializerMemberValue) mappingsValue )
-                        .getInitializers() )
-                    .filter( MapstructAnnotationUtils::isMappingPsiAnnotation )
-                    .map( PsiAnnotation.class::cast );
-            }
-            else if ( mappingsValue instanceof PsiAnnotation ) {
-                mappingsAnnotations = Stream.of( (PsiAnnotation) mappingsValue );
-            }
-        }
-
+        Stream<PsiAnnotation> mappingsAnnotations = extractMappingAnnotationsFromMappings( mappings );
         Stream<PsiAnnotation> mappingAnnotations = findMappingAnnotations( owner, includeMetaAnnotations );
 
         return Stream.concat( mappingAnnotations, mappingsAnnotations );
     }
 
+    @NotNull
+    public static Stream<PsiAnnotation> extractMappingAnnotationsFromMappings(@Nullable PsiAnnotation mappings) {
+        if (mappings == null) {
+            return Stream.empty();
+        }
+        //TODO maybe there is a better way to do this, but currently I don't have that much knowledge
+        PsiAnnotationMemberValue mappingsValue = mappings.findDeclaredAttributeValue( null );
+        if ( mappingsValue instanceof PsiArrayInitializerMemberValue mappingsArrayInitializerMemberValue) {
+            return Stream.of( mappingsArrayInitializerMemberValue
+                            .getInitializers() )
+                    .filter( MapstructAnnotationUtils::isMappingPsiAnnotation )
+                    .map( PsiAnnotation.class::cast );
+        }
+        else if ( mappingsValue instanceof PsiAnnotation mappingsAnnotation ) {
+            return Stream.of( mappingsAnnotation );
+        }
+        return Stream.empty();
+    }
+
     private static Stream<PsiAnnotation> findMappingAnnotations(@NotNull PsiModifierListOwner method,
                                                                 boolean includeMetaAnnotations) {
 
-        Stream<PsiAnnotation> metaAnnotations = Stream.empty();
-
         if ( includeMetaAnnotations ) {
             // do not use MetaAnnotationUtil#findMetaAnnotations since it only finds the first @Mapping annotation
-            metaAnnotations = findMetaAnnotations( method, new HashSet<>() ).stream();
+            return findDirectAndMetaAnnotations( method, new HashSet<>() ).stream();
         }
 
-        Stream<PsiAnnotation> directAnnotations = Stream.of( method.getModifierList() )
+        return Stream.of( method.getModifierList() )
             .filter( Objects::nonNull )
             .flatMap( psiModifierList -> Arrays.stream( psiModifierList.getAnnotations() ) )
             .filter( MapstructAnnotationUtils::isMappingAnnotation );
-
-        return Stream.concat( directAnnotations, metaAnnotations );
     }
 
     @NotNull
-    private static Set<PsiAnnotation> findMetaAnnotations(@NotNull PsiModifierListOwner owner,
-                                                          Set<? super PsiClass> visited) {
+    private static Set<PsiAnnotation> findDirectAndMetaAnnotations(@NotNull PsiModifierListOwner owner,
+                                                                   Set<? super PsiClass> visited) {
 
         Set<PsiAnnotation> result = new HashSet<>();
 
@@ -348,7 +350,7 @@ public class MapstructAnnotationUtils {
 
         for ( PsiClass annotationClass : annotationClasses ) {
             if ( visited.add( annotationClass ) ) {
-                result.addAll( findMetaAnnotations( annotationClass, visited ) );
+                result.addAll( findDirectAndMetaAnnotations( annotationClass, visited ) );
             }
         }
 
@@ -374,14 +376,13 @@ public class MapstructAnnotationUtils {
         PsiAnnotation valueMappings = findAnnotation( method, true, MapstructUtil.VALUE_MAPPINGS_ANNOTATION_FQN );
         if ( valueMappings != null ) {
             PsiAnnotationMemberValue mappingsValue = valueMappings.findDeclaredAttributeValue( null );
-            if ( mappingsValue instanceof PsiArrayInitializerMemberValue ) {
-                valueMappingsAnnotations = Stream.of( ( (PsiArrayInitializerMemberValue) mappingsValue )
-                        .getInitializers() )
+            if ( mappingsValue instanceof PsiArrayInitializerMemberValue mappingsArrayInitializerMemberValue ) {
+                valueMappingsAnnotations = Stream.of( mappingsArrayInitializerMemberValue.getInitializers() )
                     .filter( MapstructAnnotationUtils::isValueMappingPsiAnnotation )
                     .map( PsiAnnotation.class::cast );
             }
-            else if ( mappingsValue instanceof PsiAnnotation ) {
-                valueMappingsAnnotations = Stream.of( (PsiAnnotation) mappingsValue );
+            else if ( mappingsValue instanceof PsiAnnotation mappingsAnnotation ) {
+                valueMappingsAnnotations = Stream.of( mappingsAnnotation );
             }
         }
 
@@ -424,7 +425,7 @@ public class MapstructAnnotationUtils {
      * {@code false} otherwise
      */
     private static boolean isValueMappingAnnotation(PsiAnnotation psiAnnotation) {
-        return Objects.equals( psiAnnotation.getQualifiedName(), VALUE_MAPPING_ANNOTATION_FQN );
+        return VALUE_MAPPING_ANNOTATION_FQN.equals( psiAnnotation.getQualifiedName() );
     }
 
     /**
@@ -434,7 +435,7 @@ public class MapstructAnnotationUtils {
      * false} otherwise
      */
     private static boolean isMappingAnnotation(PsiAnnotation psiAnnotation) {
-        return Objects.equals( psiAnnotation.getQualifiedName(), MAPPING_ANNOTATION_FQN );
+        return MAPPING_ANNOTATION_FQN.equals( psiAnnotation.getQualifiedName() );
     }
 
     /**
@@ -448,22 +449,33 @@ public class MapstructAnnotationUtils {
     @Nullable
     public static PsiModifierListOwner findMapperConfigReference(@NotNull PsiAnnotation mapperAnnotation) {
         PsiAnnotationMemberValue configValue = mapperAnnotation.findDeclaredAttributeValue( "config" );
-        if ( !( configValue instanceof PsiClassObjectAccessExpression ) ) {
+        if ( !( configValue instanceof PsiClassObjectAccessExpression configClassObjectAccessExpression ) ) {
             return null;
         }
 
-        PsiJavaCodeReferenceElement referenceElement = ( (PsiClassObjectAccessExpression) configValue ).getOperand()
+        PsiJavaCodeReferenceElement referenceElement = configClassObjectAccessExpression.getOperand()
             .getInnermostComponentReferenceElement();
         if ( referenceElement == null ) {
             return null;
         }
 
         PsiElement resolvedElement = referenceElement.resolve();
-        if ( !( resolvedElement instanceof PsiModifierListOwner ) ) {
+        if ( !( resolvedElement instanceof PsiModifierListOwner psiModifierListOwner ) ) {
             return null;
         }
 
-        return (PsiModifierListOwner) resolvedElement;
+        return psiModifierListOwner;
+    }
+
+    public static Optional<PsiClass> findMapperConfigClass(@NotNull PsiAnnotation mapperAnnotation) {
+
+        PsiModifierListOwner mapperConfigReference = findMapperConfigReference( mapperAnnotation );
+
+        if ( !( mapperConfigReference instanceof PsiClass mapperPsiClass ) ) {
+            return Optional.empty();
+        }
+
+        return Optional.of( mapperPsiClass );
     }
 
     /**
@@ -487,14 +499,13 @@ public class MapstructAnnotationUtils {
         PsiAnnotationMemberValue usesValue = mapperAnnotation.findDeclaredAttributeValue( "uses" );
 
         Stream<PsiClassObjectAccessExpression> usesExpressions = Stream.empty();
-        if ( usesValue instanceof PsiArrayInitializerMemberValue ) {
-            usesExpressions = Stream.of( ( (PsiArrayInitializerMemberValue) usesValue )
-                    .getInitializers() )
+        if ( usesValue instanceof PsiArrayInitializerMemberValue psiArrayInitializerMemberValue ) {
+            usesExpressions = Stream.of( psiArrayInitializerMemberValue.getInitializers() )
                 .filter( PsiClassObjectAccessExpression.class::isInstance )
                 .map( PsiClassObjectAccessExpression.class::cast );
         }
-        else if ( usesValue instanceof PsiClassObjectAccessExpression ) {
-            usesExpressions = Stream.of( (PsiClassObjectAccessExpression) usesValue );
+        else if ( usesValue instanceof PsiClassObjectAccessExpression usedPsiClassObjectAccessExpression ) {
+            usesExpressions = Stream.of( usedPsiClassObjectAccessExpression );
         }
 
         return usesExpressions
@@ -560,22 +571,34 @@ public class MapstructAnnotationUtils {
 
     @NotNull
     private static ReportingPolicy getUnmappedTargetPolicyFromMapperConfig(@NotNull PsiAnnotation mapperAnnotation) {
+        PsiAnnotationMemberValue configValue = findConfigValueFromMapperConfig( mapperAnnotation,
+                UNMAPPED_TARGET_POLICY );
+        if (configValue == null) {
+            return ReportingPolicy.WARN;
+        }
+        return getUnmappedTargetPolicyPolicyFromAnnotation( configValue );
+    }
+
+    /**
+     * finds a property from a referenced mapper config class
+     * @param mapperAnnotation the @Mapper annotation from the current class
+     * @param name the name of the property tp find
+     * @return null if no mapper config class is used or no property with name is found.
+     */
+    @Nullable
+    public static PsiAnnotationMemberValue findConfigValueFromMapperConfig(@NotNull PsiAnnotation mapperAnnotation,
+                                                                           @NotNull String name) {
         PsiModifierListOwner mapperConfigReference = findMapperConfigReference( mapperAnnotation );
         if ( mapperConfigReference == null ) {
-            return ReportingPolicy.WARN;
+            return null;
         }
         PsiAnnotation mapperConfigAnnotation = mapperConfigReference.getAnnotation(
             MapstructUtil.MAPPER_CONFIG_ANNOTATION_FQN );
 
         if ( mapperConfigAnnotation == null ) {
-            return ReportingPolicy.WARN;
+            return null;
         }
-        PsiAnnotationMemberValue configValue =
-            mapperConfigAnnotation.findDeclaredAttributeValue( UNMAPPED_TARGET_POLICY );
-        if ( configValue == null ) {
-            return ReportingPolicy.WARN;
-        }
-        return getUnmappedTargetPolicyPolicyFromAnnotation( configValue );
+        return mapperConfigAnnotation.findDeclaredAttributeValue( name );
     }
 
 
@@ -589,18 +612,56 @@ public class MapstructAnnotationUtils {
     @NotNull
     private static ReportingPolicy getUnmappedTargetPolicyPolicyFromAnnotation(
         @NotNull PsiAnnotationMemberValue configValue) {
-        switch ( configValue.getText() ) {
-            case "IGNORE":
-            case "ReportingPolicy.IGNORE":
-                return ReportingPolicy.IGNORE;
-            case "ERROR":
-            case "ReportingPolicy.ERROR":
-                return ReportingPolicy.ERROR;
-            case "WARN":
-            case "ReportingPolicy.WARN":
-            default:
-                return ReportingPolicy.WARN;
+        return switch (configValue.getText()) {
+            case "IGNORE", "ReportingPolicy.IGNORE" -> ReportingPolicy.IGNORE;
+            case "ERROR", "ReportingPolicy.ERROR" -> ReportingPolicy.ERROR;
+            default -> ReportingPolicy.WARN;
+        };
+    }
+
+    @Nullable
+    public static PsiMethod getAnnotatedMethod(@NotNull PsiAnnotation psiAnnotation) {
+        PsiElement psiAnnotationParent = psiAnnotation.getParent();
+        if (psiAnnotationParent == null) {
+            return null;
         }
+        PsiElement psiAnnotationParentParent = psiAnnotationParent.getParent();
+        if (psiAnnotationParentParent instanceof PsiMethod annotatedPsiMethod) {
+            // directly annotated with @Mapping
+            return annotatedPsiMethod;
+        }
+
+        PsiElement psiAnnotationParentParentParent = psiAnnotationParentParent.getParent();
+        if (psiAnnotationParentParentParent instanceof PsiAnnotation) {
+            // inside @Mappings without array
+            PsiElement mappingsAnnotationParent = psiAnnotationParentParentParent.getParent();
+            if (mappingsAnnotationParent == null) {
+                return null;
+            }
+            PsiElement mappingsAnnotationParentParent = mappingsAnnotationParent.getParent();
+            if (mappingsAnnotationParentParent instanceof PsiMethod annotatedPsiMethod) {
+                return annotatedPsiMethod;
+            }
+            return null;
+        }
+        else if (psiAnnotationParentParentParent instanceof PsiAnnotationParamListImpl) {
+            // inside @Mappings wit array
+            PsiElement mappingsArray = psiAnnotationParentParentParent.getParent();
+            if (mappingsArray == null) {
+                return null;
+            }
+            PsiElement mappingsAnnotationParent = mappingsArray.getParent();
+            if (mappingsAnnotationParent == null) {
+                return null;
+            }
+            PsiElement mappingsAnnotationParentParent = mappingsAnnotationParent.getParent();
+            if (mappingsAnnotationParentParent instanceof PsiMethod annotatedPsiMethod) {
+                return annotatedPsiMethod;
+            }
+            return null;
+
+        }
+        return null;
     }
 
 }

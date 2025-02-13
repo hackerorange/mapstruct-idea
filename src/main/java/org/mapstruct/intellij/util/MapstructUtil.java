@@ -91,13 +91,14 @@ public final class MapstructUtil {
     public static final String NAMED_ANNOTATION_FQN = Named.class.getName();
 
     public static final String INHERIT_CONFIGURATION_FQN = InheritConfiguration.class.getName();
+    public static final String INHERIT_INVERSE_CONFIGURATION_FQN = InheritInverseConfiguration.class.getName();
 
-    static final String MAPPINGS_ANNOTATION_FQN = Mappings.class.getName();
+    public static final String MAPPINGS_ANNOTATION_FQN = Mappings.class.getName();
+
     static final String VALUE_MAPPING_ANNOTATION_FQN = ValueMapping.class.getName();
     static final String VALUE_MAPPINGS_ANNOTATION_FQN = ValueMappings.class.getName();
     private static final String MAPPING_TARGET_ANNOTATION_FQN = MappingTarget.class.getName();
     private static final String CONTEXT_ANNOTATION_FQN = Context.class.getName();
-    private static final String INHERIT_INVERSE_CONFIGURATION_FQN = InheritInverseConfiguration.class.getName();
     private static final String BUILDER_ANNOTATION_FQN = Builder.class.getName();
     private static final String ENUM_MAPPING_ANNOTATION_FQN = EnumMapping.class.getName();
 
@@ -108,7 +109,7 @@ public final class MapstructUtil {
     }
 
     public static LookupElement[] asLookup(Map<String, Pair<? extends PsiElement, PsiSubstitutor>> accessors,
-        Function<PsiElement, PsiType> typeMapper) {
+                                           Function<PsiElement, PsiType> typeMapper) {
         if ( !accessors.isEmpty() ) {
             LookupElement[] lookupElements = new LookupElement[accessors.size()];
             int index = 0;
@@ -163,7 +164,7 @@ public final class MapstructUtil {
     }
 
     public static LookupElement asLookup(String propertyName, @NotNull Pair<? extends PsiElement, PsiSubstitutor> pair,
-        Function<PsiElement, PsiType> typeMapper, Icon icon) {
+                                         Function<PsiElement, PsiType> typeMapper, Icon icon) {
         PsiElement member = pair.getFirst();
         PsiSubstitutor substitutor = pair.getSecond();
 
@@ -200,17 +201,35 @@ public final class MapstructUtil {
 
     public static boolean isPublicModifiable(@NotNull PsiField field) {
         return isPublicNonStatic( field ) &&
-               !field.hasModifierProperty( PsiModifier.FINAL );
+            !field.hasModifierProperty( PsiModifier.FINAL );
     }
 
     public static boolean isFluentSetter(@NotNull PsiMethod method, PsiType psiType) {
         return !psiType.getCanonicalText().startsWith( "java.lang" ) &&
             method.getReturnType() != null &&
             !isAdderWithUpperCase4thCharacter( method ) &&
-            TypeConversionUtil.isAssignable(
-                psiType,
-                PsiUtil.resolveGenericsClassInType( psiType ).getSubstitutor().substitute( method.getReturnType() )
-            );
+            isAssignableFromReturnTypeOrSuperTypes( psiType, method.getReturnType() );
+    }
+
+    private static boolean isAssignableFromReturnTypeOrSuperTypes(PsiType psiType, PsiType returnType) {
+
+        if ( isAssignableFrom( psiType, returnType ) ) {
+            return true;
+        }
+
+        for ( PsiType superType : returnType.getSuperTypes() ) {
+            if ( isAssignableFrom( psiType, superType ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isAssignableFrom(PsiType psiType, @Nullable PsiType returnType) {
+        return TypeConversionUtil.isAssignable(
+            psiType,
+            PsiUtil.resolveGenericsClassInType( psiType ).getSubstitutor().substitute( returnType )
+        );
     }
 
     private static boolean isAdderWithUpperCase4thCharacter(@NotNull PsiMethod method) {

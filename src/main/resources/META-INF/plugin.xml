@@ -24,12 +24,15 @@
   <vendor url="https://www.mapstruct.org">MapStruct</vendor>
 
   <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-  <idea-version since-build="212"/>
+  <idea-version since-build="233"/>
 
   <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
        on how to target different products -->
   <depends>com.intellij.modules.java</depends>
   <depends optional="true" config-file="withKotlin.xml">org.jetbrains.kotlin</depends>
+  <extensions defaultExtensionNs="org.jetbrains.kotlin">
+    <supportsKotlinPluginMode supportsK2="true" />
+  </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- Add your extensions here -->
@@ -82,7 +85,86 @@
             key="inspection.wrong.usage.mappers.factory"
             shortName="WrongUsageOfMappersFactory"
             implementationClass="org.mapstruct.intellij.inspection.WrongUsageOfMappersFactoryInspection"/>
-
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.more.than.one.source.property"
+            shortName="MoreThanOneSourceDefined"
+            implementationClass="org.mapstruct.intellij.inspection.MoreThanOneSourcePropertyDefinedInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.more.than.one.default.source.property"
+            shortName="MoreThanOneDefaultSourceDefined"
+            implementationClass="org.mapstruct.intellij.inspection.MoreThanOneDefaultSourcePropertyDefinedInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.no.source.property"
+            shortName="NoSourcePropertyDefined"
+            implementationClass="org.mapstruct.intellij.inspection.NoSourcePropertyDefinedInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.not.null.checkable.property.source.used.with.default.property.title"
+            shortName="NotNullCheckableSourcePropertyUsedWithDefaultValue"
+            implementationClass="org.mapstruct.intellij.inspection.NotNullCheckableSourcePropertyUsedWithDefaultValueInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="WARNING"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.java.expression.unnecessary.whitespace.title"
+            shortName="JavaExpressionUnnecessaryWhitespaces"
+            implementationClass="org.mapstruct.intellij.inspection.JavaExpressionUnnecessaryWhitespacesInspector"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="WARNING"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.wrong.map.mapping.map.type"
+            shortName="FromMapMappingInspection"
+            implementationClass="org.mapstruct.intellij.inspection.FromMapMappingMapTypeInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.this.target.mapping.no.source.property"
+            shortName="TargetThisMappingNoSourcePropertyInspection"
+            implementationClass="org.mapstruct.intellij.inspection.TargetThisMappingNoSourcePropertyInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.target.property.mapped.more.than.once.title"
+            shortName="TargetPropertyMappedMoreThanOnceInspection"
+            implementationClass="org.mapstruct.intellij.inspection.TargetPropertyMappedMoreThanOnceInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="WARNING"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.source.property.this.used"
+            shortName="ThisUsedAsSourcePropertyInspection"
+            implementationClass="org.mapstruct.intellij.inspection.ThisUsedAsSourcePropertyInspection"/>
+    <localInspection
+            language="JAVA"
+            enabledByDefault="true"
+            level="ERROR"
+            bundle="org.mapstruct.intellij.messages.MapStructBundle"
+            key="inspection.mapstruct.references"
+            shortName="MapstructReferenceInspection"
+            implementationClass="org.mapstruct.intellij.inspection.MapstructReferenceInspection"/>
   </extensions>
 
   <actions>

@@ -29,10 +29,12 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiModifierListOwner;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiSubstitutor;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.PsiTypes;
 import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry;
 import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NotNull;
@@ -40,14 +42,14 @@ import org.jetbrains.annotations.Nullable;
 
 import static com.intellij.codeInsight.AnnotationUtil.findAnnotation;
 import static com.intellij.codeInsight.AnnotationUtil.getBooleanAttributeValue;
-import static org.mapstruct.intellij.util.InheritConfigurationUtils.findMappingMethodsFromInheritScope;
-import static org.mapstruct.intellij.util.InheritConfigurationUtils.findSingleMatchingInheritMappingMethod;
 import static org.mapstruct.intellij.util.MapstructAnnotationUtils.findAllDefinedMappingAnnotations;
 import static org.mapstruct.intellij.util.MapstructAnnotationUtils.findMapperConfigReference;
-import static org.mapstruct.intellij.util.MapstructUtil.INHERIT_CONFIGURATION_FQN;
 import static org.mapstruct.intellij.util.MapstructUtil.MAPPER_ANNOTATION_FQN;
 import static org.mapstruct.intellij.util.MapstructUtil.canDescendIntoType;
 import static org.mapstruct.intellij.util.MapstructUtil.isFluentSetter;
+import static org.mapstruct.intellij.util.MapstructUtil.isInheritInverseConfiguration;
+import static org.mapstruct.intellij.util.MapstructUtil.isMapper;
+import static org.mapstruct.intellij.util.MapstructUtil.isMapperConfig;
 import static org.mapstruct.intellij.util.MapstructUtil.publicFields;
 
 /**
@@ -76,7 +78,7 @@ public class TargetUtils {
             return null;
         }
         PsiType psiType = mappingMethod.getReturnType();
-        if ( psiType == null || PsiType.VOID.equalsToText( psiType.getCanonicalText() ) ) {
+        if ( psiType == null || PsiTypes.voidType().equalsToText( psiType.getCanonicalText() ) ) {
             psiType = Stream.of( mappingMethod.getParameterList().getParameters() )
                 .filter( MapstructUtil::isMappingTarget )
                 .findAny()
@@ -178,8 +180,8 @@ public class TargetUtils {
     private static Optional<Boolean> findDisabledBuilder(@Nullable PsiAnnotation requestedAnnotation) {
         if ( requestedAnnotation != null ) {
             PsiAnnotationMemberValue builderValue = requestedAnnotation.findDeclaredAttributeValue( "builder" );
-            if ( builderValue instanceof PsiAnnotation ) {
-                Boolean disableBuilder = getBooleanAttributeValue( (PsiAnnotation) builderValue, "disableBuilder" );
+            if ( builderValue instanceof PsiAnnotation builderAnnotation ) {
+                Boolean disableBuilder = getBooleanAttributeValue( builderAnnotation, "disableBuilder" );
                 return Optional.ofNullable( disableBuilder );
             }
         }
@@ -291,38 +293,37 @@ public class TargetUtils {
     @Nullable
     private static String extractPublicSetterPropertyName(PsiMethod method, @NotNull PsiType typeToUse,
         boolean builderSupportPresent) {
-        if ( method.getParameterList().getParametersCount() != 1 || !MapstructUtil.isPublicNonStatic( method ) ) {
-            // If the method does not have 1 parameter or is not public then there is no property
+        if (!MapstructUtil.isPublicNonStatic( method )) {
+            // If the method is not public then there is no property
+            return null;
+        }
+        String methodName = method.getName();
+        int parametersCount = method.getParameterList().getParametersCount();
+        PsiType returnType = method.getReturnType();
+        if (parametersCount == 0 && methodName.startsWith( "get" ) && returnType != null &&
+                returnType.isConvertibleFrom( PsiType.getTypeByName( "java.util.Collection",
+                        method.getProject(), method.getResolveScope() ) )) {
+            // If the methode returns a collection
+            return Introspector.decapitalize( methodName.substring( 3 ) );
+        }
+        if (parametersCount != 1) {
+            // If the method does not have 1 parameter
             return null;
         }
 
         // This logic is aligned with the DefaultAccessorNamingStrategy
-        String methodName = method.getName();
-        if ( builderSupportPresent ) {
-            if ( isFluentSetter( method, typeToUse ) ) {
-                if ( methodName.startsWith( "set" )
-                    && methodName.length() > 3
-                    && Character.isUpperCase( methodName.charAt( 3 ) ) ) {
-                    return Introspector.decapitalize( methodName.substring( 3 ) );
-                }
-                else {
-                    return methodName;
-                }
-            }
-            else if ( methodName.startsWith( "set" ) ) {
+        if ( builderSupportPresent && isFluentSetter( method, typeToUse )) {
+            if ( methodName.startsWith( "set" )
+                && methodName.length() > 3
+                && Character.isUpperCase( methodName.charAt( 3 ) ) ) {
                 return Introspector.decapitalize( methodName.substring( 3 ) );
             }
-            else {
-                return null;
-            }
+            return methodName;
         }
-        else if ( methodName.startsWith( "set" ) ) {
+        if ( methodName.startsWith( "set" ) ) {
             return Introspector.decapitalize( methodName.substring( 3 ) );
         }
-        else {
-            return null;
-        }
-
+        return null;
     }
 
     /**
@@ -387,14 +388,15 @@ public class TargetUtils {
     /**
      * Find all defined {@link org.mapstruct.Mapping#target()} for the given method
      *
-     * @param method that needs to be checked
+     * @param owner that needs to be checked
      * @param mapStructVersion the MapStruct project version
      *
      * @return see description
      */
-    public static Stream<String> findAllDefinedMappingTargets(@NotNull PsiMethod method,
+    @NotNull
+    public static Stream<String> findAllDefinedMappingTargets(@NotNull PsiModifierListOwner owner,
         MapStructVersion mapStructVersion) {
-        return findAllDefinedMappingAnnotations( method, mapStructVersion )
+        return findAllDefinedMappingAnnotations( owner, mapStructVersion )
             .map( psiAnnotation -> AnnotationUtil.getDeclaredStringAttributeValue( psiAnnotation, "target" ) )
             .filter( Objects::nonNull )
             .filter( s -> !s.isEmpty() );
@@ -438,41 +440,27 @@ public class TargetUtils {
     }
 
     /**
-     * Find all target properties from an inherited mapping method when annotated with
-     * {@link org.mapstruct.InheritConfiguration} but only if there is a single matching candidate found
+     * @param method the method to be used
      *
-     * @param mappingMethod that needs to be checked
-     * @param mapStructVersion the MapStruct project version
-     *
-     * @return all inherited target properties
+     * @return the target class for the inspection, or {@code null} if no inspection needs to be performed
      */
-    public static Stream<String> findInheritedTargetProperties(@NotNull PsiMethod mappingMethod,
-                                                               MapStructVersion mapStructVersion) {
-
-        PsiClass containingClass = mappingMethod.getContainingClass();
-        PsiAnnotation inheritConfigurationAnnotation = findAnnotation( mappingMethod, INHERIT_CONFIGURATION_FQN );
-
-        if ( containingClass == null || inheritConfigurationAnnotation == null ) {
-            return Stream.empty();
+    @Nullable
+    public static PsiType getTargetType( @NotNull PsiMethod method) {
+        if ( !method.getModifierList().hasModifierProperty( PsiModifier.ABSTRACT ) ) {
+            return null;
         }
 
-        PsiAnnotation mapperAnnotation = findAnnotation( containingClass, MAPPER_ANNOTATION_FQN );
-
-        if ( mapperAnnotation == null ) {
-            return Stream.empty();
+        if ( isInheritInverseConfiguration( method ) ) {
+            return null;
         }
+        PsiClass containingClass = method.getContainingClass();
 
-        Stream<PsiMethod> candidates = findMappingMethodsFromInheritScope( containingClass, mapperAnnotation );
-
-        Optional<PsiMethod> inheritMappingMethod = findSingleMatchingInheritMappingMethod(
-            mappingMethod,
-            candidates,
-            inheritConfigurationAnnotation
-        );
-
-        return inheritMappingMethod
-            .map( candidate -> TargetUtils.findAllDefinedMappingTargets( candidate, mapStructVersion ) )
-            .orElse( Stream.empty() );
+        if ( containingClass == null
+                || method.getNameIdentifier() == null
+                || !( isMapper( containingClass ) || isMapperConfig( containingClass ) ) ) {
+            return null;
+        }
+        return getRelevantType( method );
     }
 
 }
