@@ -21,6 +21,7 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.EmptySubstitutor;
 import com.intellij.psi.JavaPsiFacade;
@@ -70,7 +71,9 @@ import static com.intellij.codeInsight.AnnotationUtil.isAnnotated;
 /**
  * @author Filip Hrisafov
  */
-public final class MapstructUtil {
+public class MapstructUtil {
+
+    private static final MapstructUtil INSTANCE = new MapstructUtil();
 
     /**
      * The FQN of the {@link Mapper} annotation.
@@ -101,11 +104,29 @@ public final class MapstructUtil {
     private static final String CONTEXT_ANNOTATION_FQN = Context.class.getName();
     private static final String BUILDER_ANNOTATION_FQN = Builder.class.getName();
     private static final String ENUM_MAPPING_ANNOTATION_FQN = EnumMapping.class.getName();
+    private static final String IMMUTABLE_FQN = "org.immutables.value.Value.Immutable";
+    private static final String FREE_BUILDER_FQN = "org.inferred.freebuilder.FreeBuilder";
 
     /**
      * Hide constructor.
      */
-    private MapstructUtil() {
+    MapstructUtil() {
+    }
+
+    public static MapstructUtil getInstance(@Nullable PsiFile psiFile) {
+        if ( psiFile == null ) {
+            return MapstructUtil.INSTANCE;
+        }
+
+        if ( MapstructUtil.immutablesOnClassPath( psiFile ) ) {
+            return ImmutablesMapstructUtil.INSTANCE;
+        }
+
+        if ( MapstructUtil.freeBuilderOnClassPath( psiFile ) ) {
+            return FreeBuildersMapstructUtil.INSTANCE;
+        }
+
+        return MapstructUtil.INSTANCE;
     }
 
     public static LookupElement[] asLookup(Map<String, Pair<? extends PsiElement, PsiSubstitutor>> accessors,
@@ -204,14 +225,14 @@ public final class MapstructUtil {
             !field.hasModifierProperty( PsiModifier.FINAL );
     }
 
-    public static boolean isFluentSetter(@NotNull PsiMethod method, PsiType psiType) {
+    public boolean isFluentSetter(@NotNull PsiMethod method, PsiType psiType, @NotNull PsiSubstitutor substitutor) {
         return !psiType.getCanonicalText().startsWith( "java.lang" ) &&
             method.getReturnType() != null &&
             !isAdderWithUpperCase4thCharacter( method ) &&
-            isAssignableFromReturnTypeOrSuperTypes( psiType, method.getReturnType() );
+            isAssignableFromReturnTypeOrSuperTypes( psiType, substitutor.substitute( method.getReturnType() ) );
     }
 
-    private static boolean isAssignableFromReturnTypeOrSuperTypes(PsiType psiType, PsiType returnType) {
+    private static boolean isAssignableFromReturnTypeOrSuperTypes(PsiType psiType, @NotNull PsiType returnType) {
 
         if ( isAssignableFrom( psiType, returnType ) ) {
             return true;
@@ -225,7 +246,7 @@ public final class MapstructUtil {
         return false;
     }
 
-    private static boolean isAssignableFrom(PsiType psiType, @Nullable PsiType returnType) {
+    private static boolean isAssignableFrom(PsiType psiType, @NotNull PsiType returnType) {
         return TypeConversionUtil.isAssignable(
             psiType,
             PsiUtil.resolveGenericsClassInType( psiType ).getSubstitutor().substitute( returnType )
@@ -277,11 +298,15 @@ public final class MapstructUtil {
      * @return {@code true} if the {@code buildMethod} is a build method for {@code typeToBuild}, {@code false}
      * otherwise
      */
-    public static boolean isBuildMethod(@NotNull PsiMethod buildMethod, @NotNull PsiType typeToBuild) {
+    public static boolean isBuildMethod(@NotNull PsiMethod buildMethod, @NotNull PsiSubstitutor buildMethodSubstitutor,
+                                        @NotNull PsiType typeToBuild) {
         return buildMethod.getParameterList().isEmpty() &&
             isPublic( buildMethod ) &&
             buildMethod.getReturnType() != null &&
-            TypeConversionUtil.isAssignable( typeToBuild, buildMethod.getReturnType() );
+            TypeConversionUtil.isAssignable(
+                typeToBuild,
+                buildMethodSubstitutor.substitute( buildMethod.getReturnType() )
+            );
     }
 
     @NotNull
@@ -555,6 +580,44 @@ public final class MapstructUtil {
             }
             return CachedValueProvider.Result.createSingleDependency(
                 mapStructVersion,
+                ProjectRootManager.getInstance( module.getProject() )
+            );
+        } );
+    }
+
+    private static boolean immutablesOnClassPath(@NotNull PsiFile psiFile) {
+        VirtualFile virtualFile = psiFile.getVirtualFile();
+        if ( virtualFile == null ) {
+            return false;
+        }
+        Module module = ModuleUtilCore.findModuleForFile( virtualFile, psiFile.getProject() );
+        if ( module == null ) {
+            return false;
+        }
+        return CachedValuesManager.getManager( module.getProject() ).getCachedValue( module, () -> {
+            boolean immutablesOnClassPath = JavaPsiFacade.getInstance( module.getProject() )
+                .findClass( IMMUTABLE_FQN, module.getModuleRuntimeScope( false ) ) != null;
+            return CachedValueProvider.Result.createSingleDependency(
+                immutablesOnClassPath,
+                ProjectRootManager.getInstance( module.getProject() )
+            );
+        } );
+    }
+
+    private static boolean freeBuilderOnClassPath(@NotNull PsiFile psiFile) {
+        VirtualFile virtualFile = psiFile.getVirtualFile();
+        if ( virtualFile == null ) {
+            return false;
+        }
+        Module module = ModuleUtilCore.findModuleForFile( virtualFile, psiFile.getProject() );
+        if ( module == null ) {
+            return false;
+        }
+        return CachedValuesManager.getManager( module.getProject() ).getCachedValue( module, () -> {
+            boolean freeBuilderOnClassPath = JavaPsiFacade.getInstance( module.getProject() )
+                .findClass( FREE_BUILDER_FQN, module.getModuleRuntimeScope( false ) ) != null;
+            return CachedValueProvider.Result.createSingleDependency(
+                freeBuilderOnClassPath,
                 ProjectRootManager.getInstance( module.getProject() )
             );
         } );

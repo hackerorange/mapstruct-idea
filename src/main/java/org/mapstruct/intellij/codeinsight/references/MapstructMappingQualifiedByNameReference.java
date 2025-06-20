@@ -18,12 +18,14 @@ import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.PsiTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mapstruct.intellij.MapStructBundle;
 import org.mapstruct.intellij.util.MapstructUtil;
 
 import static com.intellij.codeInsight.AnnotationUtil.findAnnotation;
@@ -109,13 +111,39 @@ class MapstructMappingQualifiedByNameReference extends MapstructBaseReference {
             return Stream.empty();
         }
 
-        Stream<PsiMethod> internalMethods = Stream.of( containingClass.getMethods() )
-            .filter( MapstructUtil::isNamedMethod );
+        Stream<PsiMethod> internalMethods = Stream.of( containingClass.getAllMethods() )
+            .filter( MapstructUtil::isNamedMethod )
+            .filter( m -> !m.hasModifierProperty( PsiModifier.PRIVATE ) );
 
-        Stream<PsiMethod> externalMethods = findNamedMethodsInUsedMappers( containingClass );
+        Stream<PsiMethod> externalMethods = findNamedMethodsInUsedMappers( containingClass )
+            .filter( method -> methodIsAccessibleFrom( method, containingClass ) );
 
         return Stream.concat( internalMethods, externalMethods )
             .filter( this::methodHasReturnType );
+    }
+
+    private boolean methodIsAccessibleFrom(PsiMethod method, PsiClass containingClass) {
+        PsiClass methodClass = method.getContainingClass();
+        if ( methodClass == null ) {
+            return false;
+        }
+
+        if ( method.hasModifierProperty( PsiModifier.PRIVATE ) ) {
+            return false;
+        }
+
+        if ( method.hasModifierProperty( PsiModifier.PUBLIC ) ) {
+            return true;
+        }
+
+        return haveSamePackage( containingClass, methodClass );
+    }
+
+    private boolean haveSamePackage(PsiClass firstClass, PsiClass secondClass) {
+        return Objects.equals(
+            StringUtil.getPackageName( Objects.requireNonNull( firstClass.getQualifiedName() ) ),
+            StringUtil.getPackageName( Objects.requireNonNull( secondClass.getQualifiedName() ) )
+        );
     }
 
     @NotNull
@@ -165,6 +193,13 @@ class MapstructMappingQualifiedByNameReference extends MapstructBaseReference {
     @Override
     PsiType resolvedType() {
         return null;
+    }
+
+    @NotNull
+    @Override
+    public String getUnresolvedMessagePattern() {
+        //noinspection UnresolvedPropertyKey
+        return MapStructBundle.message( "unknown.qualifiedByName.reference" );
     }
 
     /**
