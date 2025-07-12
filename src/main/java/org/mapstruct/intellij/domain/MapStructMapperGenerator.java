@@ -8,7 +8,6 @@ import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
@@ -73,6 +72,10 @@ public class MapStructMapperGenerator {
                 // 创建对象映射方法
                 generateConvertMethod(mapperClass, sourceType, targetType);
 
+                // 创建对象映射方法（default）
+                generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
+                generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
+
                 // 创建 list 映射方法
                 return generateConvertListMethod(mapperClass, sourceType, targetType);
             }
@@ -84,6 +87,10 @@ public class MapStructMapperGenerator {
             // create INSTANCE field
             createInstanceFieldIfNotExists(mapperClass);
 
+            // 创建对象映射方法（default）
+            generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
+            generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
+
             // 如果来源类型不是集合类型,直接生成对象 convert 方法
             return generateConvertMethod(mapperClass, sourceType, targetType);
         }
@@ -93,7 +100,7 @@ public class MapStructMapperGenerator {
 
     private PsiMethod generateConvertMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
-        String methodName = "convertFrom" + sourceClassType.getClassName();
+        String methodName = "convert";
         String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
 
         /* ********************************************************
@@ -104,10 +111,31 @@ public class MapStructMapperGenerator {
         // TODO:后续添加多个参数校验
         for (PsiMethod method : mapperClass.getMethods()) {
             if (method.getName().equals(methodName)) {
-                if (method.getDocComment() == null) {
-                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                if (method.getParameterList().getParametersCount() == 1) {
+                    PsiParameter parameter = method.getParameterList().getParameter(0);
+                    if (parameter != null) {
+                        PsiType type = parameter.getType();
+                        if (type instanceof PsiClassType) {
+                            if (type.equals(sourceClassType)) {
+                                if (method.getDocComment() == null) {
+                                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                                }
+                                if (!method.hasAnnotation("org.springframework.lang.Nullable")) {
+                                    method.getModifierList().addAnnotation("org.springframework.lang.Nullable");
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                if (!parameter.hasAnnotation("org.springframework.lang.Nullable")) {
+                                    PsiModifierList modifierList = parameter.getModifierList();
+                                    if (modifierList != null) {
+                                        modifierList.addAnnotation("org.springframework.lang.Nullable");
+                                    }
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                return method;
+                            }
+                        }
+                    }
                 }
-                return method;
             }
         }
 
@@ -117,8 +145,130 @@ public class MapStructMapperGenerator {
          *
          ******************************************************** */
 
-        String methodContent = targetClassType.getCanonicalText() + " " + methodName + "(" + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
+        String methodContent = "@org.springframework.lang.Nullable\n" + targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
         PsiMethod resultMethod = (PsiMethod) mapperClass.add(elementFactory.createMethodFromText(methodContent, mapperClass));
+
+        addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
+        JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
+        return resultMethod;
+    }
+
+    private PsiMethod generateConvertOrDefaultMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
+
+        String methodName = "convertOrDefault";
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
+
+        /* ********************************************************
+         *
+         * 如果当前类中，已经存在了此方法，直接将现有的方法返回出去
+         *
+         ******************************************************** */
+        // TODO:后续添加多个参数校验
+        for (PsiMethod method : mapperClass.getMethods()) {
+            if (method.getName().equals(methodName)) {
+                if (method.getParameterList().getParametersCount() == 1) {
+                    PsiParameter parameter = method.getParameterList().getParameter(0);
+                    if (parameter != null) {
+                        PsiType type = parameter.getType();
+                        if (type instanceof PsiClassType) {
+                            if (type.equals(sourceClassType)) {
+                                if (method.getDocComment() == null) {
+                                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                                }
+                                if (!method.hasAnnotation("org.springframework.lang.NonNull")) {
+                                    method.getModifierList().addAnnotation("org.springframework.lang.NonNull");
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                if (!parameter.hasAnnotation("org.springframework.lang.Nullable")) {
+                                    PsiModifierList modifierList = parameter.getModifierList();
+                                    if (modifierList != null) {
+                                        modifierList.addAnnotation("org.springframework.lang.Nullable");
+                                    }
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                return method;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ********************************************************
+         *
+         * 如果当前类中，不存在了此方法，创建新的方法
+         *
+         ******************************************************** */
+
+        //noinspection ConcatenationWithEmptyString
+        String methodContent = "" +
+                "@org.springframework.lang.NonNull\n" +
+                "default " + targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ") {" +
+                "    return java.util.Optional.ofNullable(convert(" + sourceParamName + ")).orElse(new " + targetClassType.getCanonicalText() + "());" +
+                "}";
+        PsiMethod methodFromText = elementFactory.createMethodFromText(methodContent, mapperClass);
+        PsiMethod resultMethod = (PsiMethod) mapperClass.add(methodFromText);
+
+        addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
+        JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
+        return resultMethod;
+    }
+
+    private PsiMethod generateConvertOrNewInstanceMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
+
+        String methodName = "convertOrCreateInstance";
+        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
+
+        /* ********************************************************
+         *
+         * 如果当前类中，已经存在了此方法，直接将现有的方法返回出去
+         *
+         ******************************************************** */
+        // TODO:后续添加多个参数校验
+        for (PsiMethod method : mapperClass.getMethods()) {
+            if (method.getName().equals(methodName)) {
+                if (method.getParameterList().getParametersCount() == 1) {
+                    PsiParameter parameter = method.getParameterList().getParameter(0);
+                    if (parameter != null) {
+                        PsiType type = parameter.getType();
+                        if (type instanceof PsiClassType) {
+                            if (type.equals(sourceClassType)) {
+                                if (method.getDocComment() == null) {
+                                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
+                                }
+                                if (!method.hasAnnotation("org.springframework.lang.NonNull")) {
+                                    method.getModifierList().addAnnotation("org.springframework.lang.NonNull");
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                if (!parameter.hasAnnotation("org.springframework.lang.Nullable")) {
+                                    PsiModifierList modifierList = parameter.getModifierList();
+                                    if (modifierList != null) {
+                                        modifierList.addAnnotation("org.springframework.lang.Nullable");
+                                    }
+                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
+                                }
+                                return method;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ********************************************************
+         *
+         * 如果当前类中，不存在了此方法，创建新的方法
+         *
+         ******************************************************** */
+
+        //noinspection ConcatenationWithEmptyString
+        String methodContent = "" +
+                "@org.springframework.lang.NonNull\n" +
+                "default " + targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ") {" +
+                "    return java.util.Optional.ofNullable(convert(" + sourceParamName + ")).orElse(new " + targetClassType.getCanonicalText() + "());" +
+                "}";
+        PsiMethod methodFromText = elementFactory.createMethodFromText(methodContent, mapperClass);
+        PsiMethod resultMethod = (PsiMethod) mapperClass.add(methodFromText);
 
         addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
@@ -181,9 +331,10 @@ public class MapStructMapperGenerator {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
                 + "/** \n"
-                + " * batch convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
-                + " * @param " + sourceParamName + " [ required ] source objects\n"
-                + " * @return converted objects\n"
+                + " * 将 [" + sourceClassType.getClassName() + "] 列表转换为 [" + targetClassType.getClassName() + "] 列表\n"
+                + " * @param " + sourceParamName + " [ required ] 要转换的对象列表\n"
+                + " * @return " + targetClassType.getCanonicalText() + " <UNK>\n"
+                + " * @return 转换结果列表\n"
                 + " * \n"
                 + " */";
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
@@ -210,9 +361,9 @@ public class MapStructMapperGenerator {
         //noinspection ConcatenationWithEmptyString
         String docComment = ""
                 + "/** \n"
-                + " * convert from [" + sourceClassType.getClassName() + "] to [" + targetClassType.getClassName() + "]\n"
-                + " * @param " + sourceParamName + " [ required ] source object\n"
-                + " * @return converted objects\n"
+                + " * 将 [" + sourceClassType.getClassName() + "] 对象转换为 [" + targetClassType.getClassName() + "] 对象\n"
+                + " * @param " + sourceParamName + " [ required ] 要转换的对象\n"
+                + " * @return 转换结果对象\n"
                 + " * \n"
                 + " */";
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
