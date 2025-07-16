@@ -26,7 +26,7 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
         return new JavaElementVisitor() {
 
             @Override
-            public void visitReturnStatement(PsiReturnStatement returnStatement) {
+            public void visitReturnStatement(@NotNull PsiReturnStatement returnStatement) {
                 super.visitReturnStatement(returnStatement);
 
                 PsiExpression sourceReturnValue = returnStatement.getReturnValue();
@@ -57,13 +57,13 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
                     if (needFix((PsiClassType) sourceType, (PsiClassType) targetType)) {
                         holder.registerProblem(
-                                returnStatement,
+                                sourceReturnValue,
                                 MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
-                                new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
+                                new MapStructMapperGenerateAndUseConvertMethodQuickFix((PsiClassType) sourceType, (PsiClassType) targetType)
                         );
 
                         holder.registerProblem(
-                                returnStatement,
+                                sourceReturnValue,
                                 "[MapStruct] generate mapper class and use mapper method in this class",
                                 new MapStructMapperGenerateAndUseConvertMethodQuickFix2(sourceReturnValue, (PsiClassType) sourceType, (PsiClassType) targetType)
                         );
@@ -73,8 +73,54 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
             }
 
+            public void visitMethodCallExpression(@NotNull PsiMethodCallExpression methodCallExpression) {
+                super.visitMethodCallExpression(methodCallExpression);
+
+            }
+
+            public void visitAssignmentExpression(@NotNull PsiAssignmentExpression assignmentExpression) {
+                super.visitAssignmentExpression(assignmentExpression);
+
+                PsiType targetType = assignmentExpression.getLExpression().getType();
+                PsiExpression rightExpression = assignmentExpression.getRExpression();
+                if (rightExpression == null) {
+                    return;
+                }
+                PsiType sourceType = rightExpression.getType();
+                if (sourceType == null) {
+                    return;
+                }
+
+
+                if (!(sourceType instanceof PsiClassType)) {
+                    return;
+                }
+
+                if (!(targetType instanceof PsiClassType)) {
+                    return;
+                }
+                PsiClassType sourceClassType = (PsiClassType) sourceType;
+                PsiClassType targetClassType = (PsiClassType) targetType;
+
+                if (needFix(sourceClassType, targetClassType)) {
+                    holder.registerProblem(
+                            rightExpression,
+                            MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
+                            new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceClassType, targetClassType)
+                    );
+                    holder.registerProblem(
+                            rightExpression,
+                            "[MapStruct] generate mapper class and use mapper method in this class",
+                            new MapStructMapperGenerateAndUseConvertMethodQuickFix2(rightExpression, (PsiClassType) sourceType, (PsiClassType) targetType)
+                    );
+
+                }
+
+
+            }
+
             @Override
-            public void visitDeclarationStatement(PsiDeclarationStatement declarationStatement) {
+            public void visitDeclarationStatement(@NotNull PsiDeclarationStatement declarationStatement) {
                 super.visitDeclarationStatement(declarationStatement);
 
                 PsiElement[] declaredElements = declarationStatement.getDeclaredElements();
@@ -113,12 +159,12 @@ public class MapStructAnnotatorInspection extends AbstractBaseJavaLocalInspectio
 
                         if (needFix(sourceClassType, targetClassType)) {
                             holder.registerProblem(
-                                    declaredElement,
+                                    initializer,
                                     MapStructBundle.message("inspection.generate_mapstruct_class_and_use_it.problem.descriptor"),
-                                    new MapStructMapperGenerateAndUseConvertMethodQuickFix(initializer, sourceClassType, targetClassType)
+                                    new MapStructMapperGenerateAndUseConvertMethodQuickFix(sourceClassType, targetClassType)
                             );
                             holder.registerProblem(
-                                    declaredElement,
+                                    initializer,
                                     "[MapStruct] generate mapper class and use mapper method in this class",
                                     new MapStructMapperGenerateAndUseConvertMethodQuickFix2(initializer, (PsiClassType) sourceType, (PsiClassType) targetType)
                             );

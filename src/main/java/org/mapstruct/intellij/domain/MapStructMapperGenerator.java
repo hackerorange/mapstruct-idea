@@ -10,6 +10,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.util.PsiUtil;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.mapstruct.intellij.util.MapstructUtil.MAPPER_ANNOTATION_FQN;
@@ -73,7 +74,7 @@ public class MapStructMapperGenerator {
                 generateConvertMethod(mapperClass, sourceType, targetType);
 
                 // 创建对象映射方法（default）
-                generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
+//                generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
                 generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
 
                 // 创建 list 映射方法
@@ -88,7 +89,7 @@ public class MapStructMapperGenerator {
             createInstanceFieldIfNotExists(mapperClass);
 
             // 创建对象映射方法（default）
-            generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
+//            generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
             generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
 
             // 如果来源类型不是集合类型,直接生成对象 convert 方法
@@ -153,70 +154,16 @@ public class MapStructMapperGenerator {
         return resultMethod;
     }
 
-    private PsiMethod generateConvertOrDefaultMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
-
-        String methodName = "convertOrDefault";
-        String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
-
-        /* ********************************************************
-         *
-         * 如果当前类中，已经存在了此方法，直接将现有的方法返回出去
-         *
-         ******************************************************** */
-        // TODO:后续添加多个参数校验
-        for (PsiMethod method : mapperClass.getMethods()) {
-            if (method.getName().equals(methodName)) {
-                if (method.getParameterList().getParametersCount() == 1) {
-                    PsiParameter parameter = method.getParameterList().getParameter(0);
-                    if (parameter != null) {
-                        PsiType type = parameter.getType();
-                        if (type instanceof PsiClassType) {
-                            if (type.equals(sourceClassType)) {
-                                if (method.getDocComment() == null) {
-                                    addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, method, sourceParamName);
-                                }
-                                if (!method.hasAnnotation("org.springframework.lang.NonNull")) {
-                                    method.getModifierList().addAnnotation("org.springframework.lang.NonNull");
-                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
-                                }
-                                if (!parameter.hasAnnotation("org.springframework.lang.Nullable")) {
-                                    PsiModifierList modifierList = parameter.getModifierList();
-                                    if (modifierList != null) {
-                                        modifierList.addAnnotation("org.springframework.lang.Nullable");
-                                    }
-                                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(method.getContainingFile());
-                                }
-                                return method;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* ********************************************************
-         *
-         * 如果当前类中，不存在了此方法，创建新的方法
-         *
-         ******************************************************** */
-
-        //noinspection ConcatenationWithEmptyString
-        String methodContent = "" +
-                "@org.springframework.lang.NonNull\n" +
-                "default " + targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ") {" +
-                "    return java.util.Optional.ofNullable(convert(" + sourceParamName + ")).orElse(new " + targetClassType.getCanonicalText() + "());" +
-                "}";
-        PsiMethod methodFromText = elementFactory.createMethodFromText(methodContent, mapperClass);
-        PsiMethod resultMethod = (PsiMethod) mapperClass.add(methodFromText);
-
-        addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
-        JavaCodeStyleManager.getInstance(project).shortenClassReferences(resultMethod.getContainingFile());
-        return resultMethod;
-    }
-
     private PsiMethod generateConvertOrNewInstanceMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
-
-        String methodName = "convertOrCreateInstance";
+        PsiClass psiClass = targetClassType.resolve();
+        if (psiClass == null) {
+            return null;
+        }
+        boolean existsNoneArgsConstructor = Arrays.stream(psiClass.getConstructors()).anyMatch(constructor -> constructor.getParameterList().getParametersCount() == 0);
+        if (!existsNoneArgsConstructor) {
+            return null;
+        }
+        String methodName = "convertOrNewInstance";
         String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
 
         /* ********************************************************
