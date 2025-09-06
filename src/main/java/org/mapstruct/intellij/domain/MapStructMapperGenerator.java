@@ -103,6 +103,7 @@ public class MapStructMapperGenerator {
 
         String methodName = "convert";
         String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1);
+        String defaultConverterName = "convert_from_" + sourceClassType.getClassName() + "_to_" + targetClassType.getClassName();
 
         /* ********************************************************
          *
@@ -136,6 +137,11 @@ public class MapStructMapperGenerator {
                             }
                         }
                     }
+                    if (!method.hasAnnotation("org.mapstruct.Named")) {
+                        JavaPsiFacade.getInstance(project).getElementFactory().createAnnotationFromText("@org.mapstruct.Named(\"" + defaultConverterName + "\")", null);
+                        method.getModifierList().addAnnotation("org.mapstruct.Named");
+
+                    }
                 }
             }
         }
@@ -146,7 +152,11 @@ public class MapStructMapperGenerator {
          *
          ******************************************************** */
 
-        String methodContent = "@org.springframework.lang.Nullable\n" + targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
+        //noinspection ConcatenationWithEmptyString
+        String methodContent = "" +
+                "@org.springframework.lang.Nullable\n" +
+                "@org.mapstruct.Named(\"" + defaultConverterName + "\")\n" +
+                targetClassType.getCanonicalText() + " " + methodName + "(@org.springframework.lang.Nullable " + sourceClassType.getCanonicalText() + " " + sourceParamName + ");";
         PsiMethod resultMethod = (PsiMethod) mapperClass.add(elementFactory.createMethodFromText(methodContent, mapperClass));
 
         addOrReplaceDocCommentForSingleObjectConvertMethod(sourceClassType, targetClassType, resultMethod, sourceParamName);
@@ -225,6 +235,7 @@ public class MapStructMapperGenerator {
     private PsiMethod generateConvertListMethod(PsiClass mapperClass, PsiClassType sourceClassType, PsiClassType targetClassType) {
 
         String methodName = "convertFrom" + sourceClassType.getClassName() + "List";
+        String defaultConverterName = "convert_from_" + sourceClassType.getClassName() + "_to_" + targetClassType.getClassName();
         String sourceParamName = sourceClassType.getClassName().substring(0, 1).toLowerCase() + sourceClassType.getClassName().substring(1) + "List";
 
         /* ********************************************************
@@ -256,7 +267,7 @@ public class MapStructMapperGenerator {
 
         PsiMethod psiMethod = elementFactory.createMethodFromText(methodContent, mapperClass);
 
-        psiMethod.getModifierList().addAnnotation("org.mapstruct.IterableMapping(nullValueMappingStrategy = org.mapstruct.NullValueMappingStrategy.RETURN_DEFAULT)");
+        psiMethod.getModifierList().addAnnotation("org.mapstruct.IterableMapping(nullValueMappingStrategy = org.mapstruct.NullValueMappingStrategy.RETURN_DEFAULT,qualifiedByName = \"" + defaultConverterName + "\")");
 //        psiMethod.getModifierList().addAnnotation("org.springframework.lang.NonNull");
 
         PsiMethod generatedNewMethod = (PsiMethod) mapperClass.add(psiMethod);
@@ -287,9 +298,11 @@ public class MapStructMapperGenerator {
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
 
         if (method.getDocComment() != null) {
-            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment().replace(docCommentFromText));
+            method.getDocComment().replace(docCommentFromText);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment());
         } else {
-            CodeStyleManager.getInstance(method.getProject()).reformat(method.addAfter(docCommentFromText, null));
+            method.addAfter(docCommentFromText, null);
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment());
         }
 
     }
