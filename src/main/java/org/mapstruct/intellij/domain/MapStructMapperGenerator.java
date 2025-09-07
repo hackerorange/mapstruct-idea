@@ -298,11 +298,9 @@ public class MapStructMapperGenerator {
         PsiDocComment docCommentFromText = elementFactory.createDocCommentFromText(docComment);
 
         if (method.getDocComment() != null) {
-            method.getDocComment().replace(docCommentFromText);
-            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment());
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment().replace(docCommentFromText));
         } else {
-            method.addAfter(docCommentFromText, null);
-            CodeStyleManager.getInstance(method.getProject()).reformat(method.getDocComment());
+            CodeStyleManager.getInstance(method.getProject()).reformat(method.addAfter(docCommentFromText, null));
         }
 
     }
