@@ -90,10 +90,12 @@ public class MapStructMapperGenerator {
 
             // 创建对象映射方法（default）
 //            generateConvertOrDefaultMethod(mapperClass, sourceType, targetType);
-            generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
+            PsiMethod convertOrNewInstanceMethod = generateConvertOrNewInstanceMethod(mapperClass, sourceType, targetType);
 
             // 如果来源类型不是集合类型,直接生成对象 convert 方法
-            return generateConvertMethod(mapperClass, sourceType, targetType);
+            PsiMethod convertMethod = generateConvertMethod(mapperClass, sourceType, targetType);
+
+            return Objects.requireNonNullElse(convertOrNewInstanceMethod, convertMethod);
         }
 
 
